@@ -13,6 +13,7 @@ interface DataTableProps {
   onDelete: (record: DataRecord) => void; // Updated to accept full record
   onColumnUpdate?: (columns: Column[]) => void;
   onCellUpdate?: (rowId: number, columnKey: string, newValue: any) => void;
+  editableColumns?: string[];
 }
 
 export const DataTable = ({
@@ -23,7 +24,8 @@ export const DataTable = ({
   onEdit,
   onDelete,
   onColumnUpdate,
-  onCellUpdate
+  onCellUpdate,
+  editableColumns = columns.map(col => col.key),
 }: DataTableProps) => {
   const [editingColumn, setEditingColumn] = useState<string | null>(null);
   const [editingCell, setEditingCell] = useState<{rowId: number, columnKey: string} | null>(null);
@@ -67,6 +69,7 @@ export const DataTable = ({
 
   const renderCellContent = (row: DataRecord, col: Column) => {
     const isEditing = editingCell?.rowId === row.id && editingCell?.columnKey === col.key;
+    const isEditable = editableColumns.includes(col.key);
     
     if (isEditing) {
       return (
@@ -105,8 +108,8 @@ export const DataTable = ({
     } else {
       return (
         <span 
-          className={`${row[col.key] ? 'text-slate-900' : 'text-slate-400'} cursor-pointer hover:bg-slate-100 px-2 py-1 rounded`}
-          onClick={() => handleCellEdit(row.id, col.key, row[col.key])}
+          className={`${row[col.key] ? 'text-slate-900' : 'text-slate-400'} ${isEditable ? 'cursor-pointer hover:bg-slate-100' : 'cursor-not-allowed'} px-2 py-1 rounded`}
+          onClick={isEditable ? () => handleCellEdit(row.id, col.key, row[col.key]) : undefined}
         >
           {row[col.key] || '—'}
         </span>

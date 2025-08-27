@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Plus, Download, Building2, Database, TrendingUp, Users, RefreshCw } from 'lucide-react';
+import { Plus, Download, Building2, RefreshCw } from 'lucide-react';
 
 import type { Column, SortConfig, Filters, DataRecord, ColumnVisibility } from './types';
 import { useM88Data } from './hooks/useM88data';
@@ -15,7 +15,7 @@ import { DataTable } from './components/DataTable';
 import { RecordModal } from './components/RecordModal';
 
 
-const M88DatabaseUI = () => {
+const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factory', onLogout: () => void }) => {
   const {
     loading,
     error,
@@ -25,7 +25,6 @@ const M88DatabaseUI = () => {
     handleAddRecord,
     handleRefreshData,
     getFilteredData,
-    getAnalytics,
     getUniqueValues
   } = useM88Data();
 
@@ -40,7 +39,9 @@ const M88DatabaseUI = () => {
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: '', direction: '' });
   const [editingRecord, setEditingRecord] = useState<DataRecord | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [columns, setColumns] = useState<Column[]>([
+
+  // Define columns for both table types
+  const companyColumns: Column[] = [
     { key: 'all_brand', label: 'All Brand', type: 'text', required: true, width: '150px' },
     { key: 'brand_visible_to_factory', label: 'Brand Visible to Factory', type: 'text', width: '150px' },
     { key: 'brand_classification', label: 'Brand Classification', type: 'select', options: ['Top', 'Growth', 'Emerging', 'Maintain', 'Divest', 'Early Engagement', 'Growth/Divest'], width: '150px' },
@@ -72,11 +73,14 @@ const M88DatabaseUI = () => {
     { key: 'fa_korea', label: 'FA Korea', type: 'text', width: '120px' },
     { key: 'fa_singfore', label: 'FA Singfore', type: 'text', width: '120px' },
     { key: 'fa_heads', label: 'FA Heads', type: 'text', width: '120px' },
-  ]);
+  ];
+  const factoryColumns: Column[] = companyColumns.filter(col => col.key !== 'all_brand');
+
+  // Use correct columns based on tableType
+  const columns = tableType === 'company' ? companyColumns : factoryColumns;
   const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>({});
 
   const filteredData = getFilteredData(searchTerm, filters);
-  const analytics = getAnalytics(filteredData);
 
   // Initialize column visibility when columns change
   useEffect(() => {
@@ -181,6 +185,21 @@ const M88DatabaseUI = () => {
     }
   };
 
+  // Add a helper to determine editable columns for factory
+  const getEditableColumns = (type: 'company' | 'factory') => {
+    if (type === 'company') return companyColumns.map(col => col.key); // all editable for company
+    // Only allow editing for columns with keys starting with these prefixes
+    return factoryColumns
+      .filter(col =>
+        col.key.startsWith('hz_pt_') ||
+        col.key.startsWith('pt_') ||
+        col.key.startsWith('hz_u_') ||
+        col.key.startsWith('pt_u_')
+      )
+      .map(col => col.key);
+  };
+  const editableColumns = getEditableColumns(tableType);
+
   if (loading) return <LoadingScreen />;
   if (error) return <ErrorScreen error={error} onRetry={loadData} />;
 
@@ -200,6 +219,13 @@ const M88DatabaseUI = () => {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              <button
+                onClick={onLogout}
+                className="flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-white hover:bg-red-500 rounded-xl transition-all duration-200 border border-red-200"
+                title="Log out"
+              >
+                Log out
+              </button>
               <button 
                 onClick={handleRefresh}
                 className="flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all duration-200"
@@ -268,7 +294,6 @@ const M88DatabaseUI = () => {
               columns={columns}
               columnVisibility={columnVisibility}
               onColumnVisibilityChange={setColumnVisibility}
-              onColumnUpdate={setColumns}
               onClose={() => setShowFilters(false)}
             />
           )}
@@ -283,8 +308,8 @@ const M88DatabaseUI = () => {
             onSort={handleSort}
             onEdit={setEditingRecord}
             onDelete={(record) => handleDelete(record.id)}
-            onColumnUpdate={setColumns}
             onCellUpdate={handleCellUpdate}
+            editableColumns={editableColumns}
           />
         </div>
       </main>
