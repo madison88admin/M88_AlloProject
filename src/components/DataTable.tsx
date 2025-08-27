@@ -37,7 +37,7 @@ export const DataTable = ({
 
   const updateColumnName = (columnKey: string, newName: string) => {
     if (!onColumnUpdate) return;
-    
+    // Only update the label, never the key
     const updatedColumns = columns.map(col => 
       col.key === columnKey ? { ...col, label: newName } : col
     );

@@ -7,11 +7,13 @@ import { useM88Data } from './hooks/useM88data';
 // Components
 import { LoadingScreen } from './components/LoadingScreen';
 import { ErrorScreen } from './components/ErrorScreen';
-import { AnalyticsCard } from './components/AnalyticsCard';
+// import { AnalyticsCard } from './components/AnalyticsCard';
 import { SearchBar } from './components/SearchBar';
 import { FiltersPanel } from './components/FiltersPanel';
 import { DataTable } from './components/DataTable';
 import { RecordModal } from './components/RecordModal';
+import { supabase } from './lib/supabaseClient';
+
 
 const M88DatabaseUI = () => {
   const {
@@ -78,11 +80,13 @@ const M88DatabaseUI = () => {
 
   // Initialize column visibility when columns change
   useEffect(() => {
-    const visibility: ColumnVisibility = {};
-    columns.forEach((col, index) => {
-      visibility[col.key] = index < 8; // Show first 8 columns by default
+    setColumnVisibility(prev => {
+      const newVisibility: ColumnVisibility = {};
+      columns.forEach((col, index) => {
+        newVisibility[col.key] = prev[col.key] !== undefined ? prev[col.key] : index < 8;
+      });
+      return newVisibility;
     });
-    setColumnVisibility(visibility);
   }, [columns]);
 
   const handleSort = (key: string) => {
