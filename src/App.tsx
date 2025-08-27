@@ -168,7 +168,7 @@ const M88DatabaseUI = () => {
 
       <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
         {/* Analytics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <AnalyticsCard
             title="Total Records"
             value={analytics.total}
@@ -181,12 +181,6 @@ const M88DatabaseUI = () => {
             icon={<TrendingUp className="w-5 h-5" />}
             trend={{ value: 12, isUp: true }}
             color="emerald"
-          />
-          <AnalyticsCard
-            title="Top Tier Brands"
-            value={analytics.topTier}
-            icon={<BarChart3 className="w-5 h-5" />}
-            color="purple"
           />
           <AnalyticsCard
             title="Filtered Results"
