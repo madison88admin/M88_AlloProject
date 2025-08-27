@@ -1,8 +1,9 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Plus, Download, Building2, Database, BarChart3, TrendingUp, Users, RefreshCw } from 'lucide-react';
+import { Plus, Download, Building2, Database, TrendingUp, Users, RefreshCw } from 'lucide-react';
 
 import type { Column, SortConfig, Filters, DataRecord, ColumnVisibility } from './types';
 import { useM88Data } from './hooks/useM88data';
+import { updateFAAssignments, isFactoryColumn } from './utils/faAssignments';
 
 // Components
 import { LoadingScreen } from './components/LoadingScreen';
@@ -12,7 +13,6 @@ import { SearchBar } from './components/SearchBar';
 import { FiltersPanel } from './components/FiltersPanel';
 import { DataTable } from './components/DataTable';
 import { RecordModal } from './components/RecordModal';
-import { supabase } from './lib/supabaseClient';
 
 
 const M88DatabaseUI = () => {
@@ -41,9 +41,9 @@ const M88DatabaseUI = () => {
   const [editingRecord, setEditingRecord] = useState<DataRecord | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [columns, setColumns] = useState<Column[]>([
-    { key: 'all_brand', label: 'Brand', type: 'text', required: true, width: '150px' },
-    { key: 'brand_visible_to_factory', label: 'Factory Brand', type: 'text', width: '150px' },
-    { key: 'brand_classification', label: 'Classification', type: 'select', options: ['Top', 'Growth', 'Emerging', 'Maintain', 'Divest', 'Early Engagement', 'Growth/Divest'], width: '150px' },
+    { key: 'all_brand', label: 'All Brand', type: 'text', required: true, width: '150px' },
+    { key: 'brand_visible_to_factory', label: 'Brand Visible to Factory', type: 'text', width: '150px' },
+    { key: 'brand_classification', label: 'Brand Classification', type: 'select', options: ['Top', 'Growth', 'Emerging', 'Maintain', 'Divest', 'Early Engagement', 'Growth/Divest'], width: '150px' },
     { key: 'status', label: 'Status', type: 'select', options: ['Active', 'Inactive', 'In Development', 'On hold'], width: '150px' },
     { key: 'terms_of_shipment', label: 'Terms', type: 'select', options: ['FOB', 'LDP'], width: '120px' },
     { key: 'lead_pbd', label: 'Lead PBD', type: 'text', width: '150px' },
@@ -119,6 +119,52 @@ const M88DatabaseUI = () => {
     }
   };
 
+  // Handle individual cell updates with FA assignment logic
+  const handleCellUpdate = async (rowId: number, columnKey: string, newValue: any) => {
+    try {
+      // Find the current record
+      const currentRecord = sortedData.find(record => record.id === rowId);
+      if (!currentRecord) return;
+
+      // Update the specific field
+      const updatedRecord = { ...currentRecord, [columnKey]: newValue };
+
+      // Apply FA assignments if this is a factory column
+      const finalRecord = isFactoryColumn(columnKey) 
+        ? updateFAAssignments(updatedRecord)
+        : updatedRecord;
+
+      // Save to database using the existing hook
+      await handleSaveRecord(finalRecord);
+      
+    } catch (err) {
+      alert('Failed to update record. Please try again.');
+      console.error('Error updating record:', err);
+    }
+  };
+
+  // Enhanced save record handler that applies FA assignments
+  const handleEnhancedSaveRecord = async (record: DataRecord) => {
+    try {
+      // Apply FA assignment logic before saving
+      const recordWithFAUpdates = updateFAAssignments(record);
+      return await handleSaveRecord(recordWithFAUpdates);
+    } catch (err) {
+      throw err; // Re-throw so the caller can handle it
+    }
+  };
+
+  // Enhanced add record handler that applies FA assignments  
+  const handleEnhancedAddRecord = async (record: Omit<DataRecord, 'id'>) => {
+    try {
+      // Apply FA assignment logic before adding
+      const recordWithFAUpdates = updateFAAssignments(record as DataRecord);
+      return await handleAddRecord(recordWithFAUpdates);
+    } catch (err) {
+      throw err; // Re-throw so the caller can handle it
+    }
+  };
+
   const handleRefresh = async () => {
     try {
       await handleRefreshData();
@@ -180,7 +226,8 @@ const M88DatabaseUI = () => {
 
       <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
         {/* Analytics Cards */}
-        {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/*
           <AnalyticsCard
             title="Total Records"
             value={analytics.total}
@@ -191,14 +238,7 @@ const M88DatabaseUI = () => {
             title="Active Brands"
             value={analytics.active}
             icon={<TrendingUp className="w-5 h-5" />}
-            trend={{ value: 12, isUp: true }}
             color="emerald"
-          />
-          <AnalyticsCard
-            title="Top Tier Brands"
-            value={analytics.topTier}
-            icon={<BarChart3 className="w-5 h-5" />}
-            color="purple"
           />
           <AnalyticsCard
             title="Filtered Results"
@@ -206,7 +246,8 @@ const M88DatabaseUI = () => {
             icon={<Users className="w-5 h-5" />}
             color="amber"
           />
-        </div> */}
+          */}
+        </div>
 
         {/* Search and Filters */}
         <div className="space-y-6">
@@ -241,8 +282,9 @@ const M88DatabaseUI = () => {
             sortConfig={sortConfig}
             onSort={handleSort}
             onEdit={setEditingRecord}
-            onDelete={handleDelete}
+            onDelete={(record) => handleDelete(record.id)}
             onColumnUpdate={setColumns}
+            onCellUpdate={handleCellUpdate}
           />
         </div>
       </main>
@@ -253,9 +295,9 @@ const M88DatabaseUI = () => {
         onClose={() => setShowAddModal(false)}
         onSave={(record: DataRecord | Omit<DataRecord, 'id'>) => {
           if ('id' in (record as DataRecord)) {
-            return handleSaveRecord(record as DataRecord);
+            return handleEnhancedSaveRecord(record as DataRecord);
           }
-          return handleAddRecord(record as Omit<DataRecord, 'id'>);
+          return handleEnhancedAddRecord(record as Omit<DataRecord, 'id'>);
         }}
         columns={columns}
         title="Add New Record"
@@ -264,7 +306,7 @@ const M88DatabaseUI = () => {
       <RecordModal
         isOpen={!!editingRecord}
         onClose={() => setEditingRecord(null)}
-        onSave={(record: DataRecord | Omit<DataRecord, 'id'>) => handleSaveRecord(record as DataRecord)}
+        onSave={(record: DataRecord | Omit<DataRecord, 'id'>) => handleEnhancedSaveRecord(record as DataRecord)}
         record={editingRecord}
         columns={columns}
         title="Edit Record"

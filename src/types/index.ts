@@ -11,12 +11,11 @@ export interface Column {
     id: number;
     all_brand: string;
     brand_visible_to_factory?: string;
-    brand_classification?: 'Top' | 'Growth' | 'Emerging' | 'Maintain' | 'Divest';
+    brand_classification?: 'Top' | 'Growth' | 'Emerging' | 'Maintain' | 'Divest' | 'Early Engagement' | 'Growth/Divest';
     status?: 'Active' | 'Inactive' | 'In Development' | 'On hold';
     terms_of_shipment?: 'FOB' | 'LDP';
     lead_pbd?: string;
     support_pbd?: string;
-    // Additional fields from your database schema
     td?: string;
     nyo_planner?: string;
     indo_m88_md?: string;

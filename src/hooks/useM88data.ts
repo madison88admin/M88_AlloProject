@@ -14,8 +14,6 @@ export const useM88Data = () => {
       setError(null);
       console.log('Calling fetchM88Data...');
       const records = await fetchM88Data();
-      console.log('Records received in hook:', records);
-      console.log('Records length:', records?.length);
       setData(records);
       console.log('Data state updated');
     } catch (err) {
