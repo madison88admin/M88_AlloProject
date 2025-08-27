@@ -39,7 +39,7 @@ export const FiltersPanel = ({
   return (
     <div className="bg-slate-50/50 border border-slate-200/50 rounded-2xl p-6 space-y-6">
       {/* Data Filters */}
-      <div className="space-y-4">
+      {/* <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold text-slate-900">Data Filters</h3>
           <button 
@@ -73,7 +73,7 @@ export const FiltersPanel = ({
             </div>
           ))}
         </div>
-      </div>
+      </div> */}
 
       {/* Column Visibility Controls */}
       <div className="border-t border-slate-200 pt-6">
@@ -105,30 +105,30 @@ export const FiltersPanel = ({
         </div>
 
         {showColumnSettings && (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-64 overflow-y-auto">
+          <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 max-h-64 overflow-y-auto">
             {columns.map(col => (
               <div
                 key={col.key}
-                className={`flex items-center gap-2 p-3 rounded-lg border transition-all cursor-pointer ${
+                className={`flex items-center gap-1 p-2 rounded-md border transition-all cursor-pointer ${
                   columnVisibility[col.key]
                     ? 'bg-white border-slate-200 hover:border-blue-300'
                     : 'bg-slate-100 border-slate-200 hover:border-slate-300'
                 }`}
                 onClick={() => toggleColumnVisibility(col.key)}
               >
-                <div className="flex items-center gap-2 flex-1">
+                <div className="flex items-center gap-1 flex-1">
                   {columnVisibility[col.key] ? (
-                    <Eye className="w-4 h-4 text-blue-600" />
+                    <Eye className="w-3 h-3 text-blue-600" />
                   ) : (
-                    <EyeOff className="w-4 h-4 text-slate-400" />
+                    <EyeOff className="w-3 h-3 text-slate-400" />
                   )}
-                  <span className={`text-sm font-medium ${
+                  <span className={`text-xs font-medium truncate ${
                     columnVisibility[col.key] ? 'text-slate-900' : 'text-slate-500'
                   }`}>
                     {col.label}
                   </span>
                 </div>
-                <div className={`w-2 h-2 rounded-full ${
+                <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
                   columnVisibility[col.key] ? 'bg-blue-500' : 'bg-slate-300'
                 }`} />
               </div>

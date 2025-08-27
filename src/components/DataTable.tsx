@@ -90,7 +90,7 @@ export const DataTable = ({
 
   return (
     <div className="overflow-hidden">
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
         <table className="w-full border-collapse">
           <thead className="sticky top-0 bg-white z-10 shadow-[0_1px_0_0_rgba(0,0,0,0.05)]">
             <tr className="border-b border-slate-200">
