@@ -16,6 +16,31 @@ export interface Column {
     terms_of_shipment?: 'FOB' | 'LDP';
     lead_pbd?: string;
     support_pbd?: string;
+    // Additional fields from your database schema
+    td?: string;
+    nyo_planner?: string;
+    indo_m88_md?: string;
+    m88_qa?: string;
+    mlo_planner?: string;
+    mlo_logistic?: string;
+    mlo_purchasing?: string;
+    mlo_costing?: string;
+    wuxi_moretti?: string;
+    hz_u_jump?: string;
+    pt_u_jump?: string;
+    korea_mel?: string;
+    singfore?: string;
+    heads_up?: string;
+    hz_pt_u_jump_senior_md?: string;
+    pt_ujump_local_md?: string;
+    hz_u_jump_shipping?: string;
+    pt_ujump_shipping?: string;
+    fa_wuxi?: string;
+    fa_hz?: string;
+    fa_pt?: string;
+    fa_korea?: string;
+    fa_singfore?: string;
+    fa_heads?: string;
     [key: string]: any;
   }
  

@@ -12,13 +12,13 @@ export const ErrorScreen = ({ error, onRetry }: ErrorScreenProps) => (
         <div className="w-12 h-12 bg-red-100 rounded-2xl flex items-center justify-center">
           <Database className="w-6 h-6 text-red-600" />
         </div>
-        <h3 className="text-xl font-semibold text-red-800">Database Error</h3>
+        <h3 className="text-xl font-semibold text-red-800">Database Connection Error</h3>
       </div>
       <p className="text-red-600 mb-6">{error}</p>
       <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
         <p className="text-sm text-red-700">
-          <strong>Note:</strong> This demo uses local storage to simulate a database.
-          Your data will persist between sessions.
+          <strong>Troubleshooting:</strong> Check your database connection, table name, and permissions.
+          Ensure the table "M88-Account_Allocation" exists and is accessible.
         </p>
       </div>
       <button

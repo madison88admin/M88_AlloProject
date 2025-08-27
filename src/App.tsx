@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, Download, Building2, Database, BarChart3, TrendingUp, Users } from 'lucide-react';
+import { Plus, Download, Building2, Database, BarChart3, TrendingUp, Users, RefreshCw } from 'lucide-react';
 
 import type { Column, SortConfig, Filters, DataRecord } from './types';
 import { useM88Data } from './hooks/useM88data';
@@ -21,6 +21,7 @@ const M88DatabaseUI = () => {
     handleSaveRecord,
     handleDeleteRecord,
     handleAddRecord,
+    handleRefreshData,
     getFilteredData,
     getAnalytics,
     getUniqueValues
@@ -46,6 +47,31 @@ const M88DatabaseUI = () => {
     { key: 'terms_of_shipment', label: 'Terms', type: 'select', options: ['FOB', 'LDP'] },
     { key: 'lead_pbd', label: 'Lead PBD', type: 'text' },
     { key: 'support_pbd', label: 'Support PBD', type: 'text' },
+    // Additional columns from your database
+    { key: 'td', label: 'TD', type: 'text' },
+    { key: 'nyo_planner', label: 'NYO Planner', type: 'text' },
+    { key: 'indo_m88_md', label: 'Indo M88 MD', type: 'text' },
+    { key: 'm88_qa', label: 'M88 QA', type: 'text' },
+    { key: 'mlo_planner', label: 'MLO Planner', type: 'text' },
+    { key: 'mlo_logistic', label: 'MLO Logistic', type: 'text' },
+    { key: 'mlo_purchasing', label: 'MLO Purchasing', type: 'text' },
+    { key: 'mlo_costing', label: 'MLO Costing', type: 'text' },
+    { key: 'wuxi_moretti', label: 'Wuxi Moretti', type: 'text' },
+    { key: 'hz_u_jump', label: 'HZ U Jump', type: 'text' },
+    { key: 'pt_u_jump', label: 'PT U Jump', type: 'text' },
+    { key: 'korea_mel', label: 'Korea Mel', type: 'text' },
+    { key: 'singfore', label: 'Singfore', type: 'text' },
+    { key: 'heads_up', label: 'Heads Up', type: 'text' },
+    { key: 'hz_pt_u_jump_senior_md', label: 'HZ PT U Jump Senior MD', type: 'text' },
+    { key: 'pt_ujump_local_md', label: 'PT Ujump Local MD', type: 'text' },
+    { key: 'hz_u_jump_shipping', label: 'HZ U Jump Shipping', type: 'text' },
+    { key: 'pt_ujump_shipping', label: 'PT Ujump Shipping', type: 'text' },
+    { key: 'fa_wuxi', label: 'FA Wuxi', type: 'text' },
+    { key: 'fa_hz', label: 'FA HZ', type: 'text' },
+    { key: 'fa_pt', label: 'FA PT', type: 'text' },
+    { key: 'fa_korea', label: 'FA Korea', type: 'text' },
+    { key: 'fa_singfore', label: 'FA Singfore', type: 'text' },
+    { key: 'fa_heads', label: 'FA Heads', type: 'text' },
   ];
 
   const filteredData = getFilteredData(searchTerm, filters);
@@ -81,6 +107,22 @@ const M88DatabaseUI = () => {
     }
   };
 
+  const handleRefresh = async () => {
+    try {
+      await handleRefreshData();
+      // Clear filters and search after refresh
+      setSearchTerm('');
+      setFilters({
+        status: '',
+        brand_classification: '',
+        terms_of_shipment: ''
+      });
+      setSortConfig({ key: '', direction: '' });
+    } catch (err) {
+      alert('Failed to refresh data. Please try again.');
+    }
+  };
+
   if (loading) return <LoadingScreen />;
   if (error) return <ErrorScreen error={error} onRetry={loadData} />;
 
@@ -96,10 +138,18 @@ const M88DatabaseUI = () => {
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-slate-900">M88 Account Allocation</h1>
-                <p className="text-sm text-slate-600">Enterprise Brand Management System</p>
+                <p className="text-sm text-slate-600">Enterprise Brand Management System • Connected to Database</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
+              <button 
+                onClick={handleRefresh}
+                className="flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all duration-200"
+                title="Refresh data from database"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Refresh
+              </button>
               <button className="flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all duration-200">
                 <Download className="w-4 h-4" />
                 Export

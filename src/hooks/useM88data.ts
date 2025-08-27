@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import type { DataRecord, Filters, Analytics } from '../types';
-import { fetchM88Data, updateM88Record, createM88Record, deleteM88Record } from '../services/api';
+import { fetchM88Data, updateM88Record, createM88Record, deleteM88Record, refreshDataFromDatabase } from '../services/api';
 
 export const useM88Data = () => {
   const [data, setData] = useState<DataRecord[]>([]);
@@ -9,14 +9,21 @@ export const useM88Data = () => {
 
   const loadData = async () => {
     try {
+      console.log('=== Hook Debug: Starting loadData ===');
       setLoading(true);
       setError(null);
+      console.log('Calling fetchM88Data...');
       const records = await fetchM88Data();
+      console.log('Records received in hook:', records);
+      console.log('Records length:', records?.length);
       setData(records);
+      console.log('Data state updated');
     } catch (err) {
+      console.error('Error in loadData hook:', err);
       setError(err instanceof Error ? err.message : 'Failed to load data');
     } finally {
       setLoading(false);
+      console.log('Loading finished');
     }
   };
 
@@ -49,7 +56,18 @@ export const useM88Data = () => {
       setData(prev => [...prev, createdRecord]);
       return createdRecord;
     } catch (err) {
-      throw new Error(err instanceof Error ? err.message : 'Failed to create record');
+      throw new Error(err instanceof Error ? err.message : 'Failed to add record');
+    }
+  };
+
+  const handleRefreshData = async () => {
+    try {
+      setLoading(true);
+      await loadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to refresh data');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -98,6 +116,7 @@ export const useM88Data = () => {
     handleSaveRecord,
     handleDeleteRecord,
     handleAddRecord,
+    handleRefreshData,
     getFilteredData,
     getAnalytics,
     getUniqueValues
