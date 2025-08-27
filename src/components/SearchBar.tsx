@@ -26,7 +26,7 @@ export const SearchBar = ({
           placeholder="Search brands, status, classification..."
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="w-full pl-12 pr-16 py-4 bg-white border border-slate-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-400 transition-all duration-200 text-slate-900 placeholder-slate-500 shadow-sm"
+          className="w-full pl-12 pr-16 py-2 bg-white border border-slate-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-400 transition-all duration-200 text-slate-900 placeholder-slate-500 shadow-sm"
         />
         {searchTerm && (
           <button
@@ -41,7 +41,7 @@ export const SearchBar = ({
       <div className="flex gap-3">
         <button
           onClick={onToggleFilters}
-          className={`flex items-center gap-2 px-6 py-4 rounded-2xl border font-medium transition-all duration-200 ${
+          className={`flex items-center gap-2 px-6 py-2 rounded-2xl border font-medium transition-all duration-200 ${
             showFilters 
               ? 'bg-blue-500 text-white border-blue-500 shadow-lg shadow-blue-500/25' 
               : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
