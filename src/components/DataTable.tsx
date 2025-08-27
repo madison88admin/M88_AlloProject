@@ -1,4 +1,5 @@
-import { ArrowUpDown, Edit2, X, Database } from 'lucide-react';
+import { ArrowUpDown, Edit2, X, Database, Plus, Trash2 } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
 import type { DataRecord, Column, SortConfig } from '../types';
 import { StatusBadge } from './StatusBadge';
 import { ClassificationBadge } from './ClassificationBadge';
@@ -10,6 +11,7 @@ interface DataTableProps {
   onSort: (key: string) => void;
   onEdit: (row: DataRecord) => void;
   onDelete: (id: number) => void;
+  onColumnUpdate?: (columns: Column[]) => void;
 }
 
 export const DataTable = ({
@@ -18,9 +20,61 @@ export const DataTable = ({
   sortConfig,
   onSort,
   onEdit,
-  onDelete
+  onDelete,
+  onColumnUpdate
 }: DataTableProps) => {
-  const visibleColumns = columns.slice(0, 7);
+  const [editingColumn, setEditingColumn] = useState<string | null>(null);
+  const [newColumnName, setNewColumnName] = useState('');
+  const [showAddColumn, setShowAddColumn] = useState(false);
+  const [newColumnType, setNewColumnType] = useState<'text' | 'select' | 'boolean'>('text');
+  const [newColumnOptions, setNewColumnOptions] = useState<string[]>([]);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editingColumn && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [editingColumn]);
+
+  // Use all columns passed from parent (filtered by visibility in App.tsx)
+  const visibleColumns = columns;
+
+  const updateColumnName = (columnKey: string, newName: string) => {
+    if (!onColumnUpdate) return;
+    
+    const updatedColumns = columns.map(col => 
+      col.key === columnKey ? { ...col, label: newName } : col
+    );
+    onColumnUpdate(updatedColumns);
+    setEditingColumn(null);
+  };
+
+  const deleteColumn = (columnKey: string) => {
+    if (!onColumnUpdate) return;
+    
+    const updatedColumns = columns.filter(col => col.key !== columnKey);
+    onColumnUpdate(updatedColumns);
+  };
+
+  const addColumn = () => {
+    if (!newColumnName.trim() || !onColumnUpdate) return;
+
+    const newColumn: Column = {
+      key: `col_${Date.now()}`,
+      label: newColumnName,
+      type: newColumnType,
+      options: newColumnType === 'select' ? newColumnOptions : undefined,
+      width: '150px'
+    };
+
+    const updatedColumns = [...columns, newColumn];
+    onColumnUpdate(updatedColumns);
+
+    setNewColumnName('');
+    setNewColumnType('text');
+    setNewColumnOptions([]);
+    setShowAddColumn(false);
+  };
 
   if (data.length === 0) {
     return (
@@ -37,53 +91,109 @@ export const DataTable = ({
   return (
     <div className="overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full border-collapse">
           <thead className="sticky top-0 bg-white z-10 shadow-[0_1px_0_0_rgba(0,0,0,0.05)]">
             <tr className="border-b border-slate-200">
+              <th className="w-12 p-2 border border-slate-300 bg-slate-200 text-slate-600 font-medium text-center">
+                #
+              </th>
               {visibleColumns.map(col => (
                 <th
                   key={col.key}
-                  className="text-left py-4 px-6 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-50 transition-colors duration-150 group"
-                  onClick={() => onSort(col.key)}
+                  className="p-2 border border-slate-300 bg-slate-100 text-left font-medium text-slate-700 relative group"
+                  style={{ width: col.width || '150px' }}
                 >
-                  <div className="flex items-center gap-2">
-                    {col.label}
-                    <ArrowUpDown className={`w-3 h-3 transition-all ${
-                      sortConfig.key === col.key ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                    } ${sortConfig.key === col.key && sortConfig.direction === 'desc' ? 'rotate-180' : ''}`} />
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 flex-1">
+                      {editingColumn === col.key ? (
+                        <input
+                          ref={inputRef}
+                          type="text"
+                          defaultValue={col.label}
+                          className="bg-white border border-blue-500 rounded px-2 py-1 text-sm w-full"
+                          onBlur={(e) => updateColumnName(col.key, e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              updateColumnName(col.key, (e.target as HTMLInputElement).value);
+                            } else if (e.key === 'Escape') {
+                              setEditingColumn(null);
+                            }
+                          }}
+                        />
+                      ) : (
+                        <span
+                          className="cursor-pointer hover:text-blue-600 flex items-center gap-1"
+                          onClick={() => setEditingColumn(col.key)}
+                        >
+                          {col.label}
+                          <ArrowUpDown 
+                            className={`w-3 h-3 transition-all ${
+                              sortConfig.key === col.key ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                            } ${sortConfig.key === col.key && sortConfig.direction === 'desc' ? 'rotate-180' : ''}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onSort(col.key);
+                            }}
+                          />
+                        </span>
+                      )}
+                    </div>
+                    {onColumnUpdate && (
+                      <button
+                        onClick={() => deleteColumn(col.key)}
+                        className="opacity-0 group-hover:opacity-100 ml-2 p-1 text-red-500 hover:text-red-700 transition-all"
+                        title="Delete column"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    )}
                   </div>
                 </th>
               ))}
-              <th className="text-right py-4 px-6 text-sm font-semibold text-slate-700 w-32">
-                Actions
-              </th>
+                             <th className="text-right py-4 px-6 text-sm font-semibold text-slate-700 w-32 border border-slate-300 bg-slate-100 sticky right-0 z-20 shadow-[-2px_0_4px_rgba(0,0,0,0.1)]">
+                 Actions
+               </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {data.map((row) => (
-              <tr key={row.id} className="odd:bg-slate-50/30 hover:bg-slate-50 transition-colors duration-150 group">
+                         {data.map((row, rowIndex) => (
+               <tr key={row.id} className={`hover:bg-slate-50 transition-colors duration-150 group ${rowIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'}`}>
+                <td className="p-2 border border-slate-300 bg-slate-50 text-center text-slate-600 font-medium relative group">
+                  <div className="flex items-center justify-center">
+                    <span>{rowIndex + 1}</span>
+                    <button
+                      onClick={() => onDelete(row.id)}
+                      className="absolute right-1 opacity-0 group-hover:opacity-100 p-1 text-red-500 hover:text-red-700 transition-all"
+                      title="Delete row"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                </td>
                 {visibleColumns.map(col => (
-                  <td key={col.key} className="py-4 px-6 text-sm">
-                    {col.key === 'status' ? (
-                      <StatusBadge status={String(row[col.key] ?? '')} />
-                    ) : col.key === 'brand_classification' ? (
-                      <ClassificationBadge classification={String(row[col.key] ?? '')} />
-                    ) : col.type === 'boolean' ? (
-                      <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${
-                        row[col.key] 
-                          ? 'bg-emerald-100 text-emerald-800' 
-                          : 'bg-slate-100 text-slate-600'
-                      }`}>
-                        {row[col.key] ? 'Yes' : 'No'}
-                      </div>
-                    ) : (
-                      <span className={`${row[col.key] ? 'text-slate-900' : 'text-slate-400'}`}>
-                        {row[col.key] || '—'}
-                      </span>
-                    )}
+                  <td key={col.key} className="p-2 border border-slate-300 hover:bg-blue-50 cursor-pointer">
+                    <div className="text-sm">
+                      {col.key === 'status' ? (
+                        <StatusBadge status={String(row[col.key] ?? '')} />
+                      ) : col.key === 'brand_classification' ? (
+                        <ClassificationBadge classification={String(row[col.key] ?? '')} />
+                      ) : col.type === 'boolean' ? (
+                        <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${
+                          row[col.key] 
+                            ? 'bg-emerald-100 text-emerald-800' 
+                            : 'bg-slate-100 text-slate-600'
+                        }`}>
+                          {row[col.key] ? 'Yes' : 'No'}
+                        </div>
+                      ) : (
+                        <span className={`${row[col.key] ? 'text-slate-900' : 'text-slate-400'}`}>
+                          {row[col.key] || '—'}
+                        </span>
+                      )}
+                    </div>
                   </td>
                 ))}
-                <td className="py-4 px-6 text-right">
+                                 <td className={`py-4 px-6 text-right border border-slate-300 sticky right-0 z-10 shadow-[-2px_0_4px_rgba(0,0,0,0.1)] ${rowIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'}`}>
                   <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                     <button
                       onClick={() => onEdit(row)}
@@ -106,9 +216,92 @@ export const DataTable = ({
           </tbody>
         </table>
       </div>
+
+      {/* Add Column Modal */}
+      {showAddColumn && onColumnUpdate && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-96">
+            <h3 className="text-lg font-semibold mb-4">Add New Column</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Column Name
+                </label>
+                <input
+                  type="text"
+                  value={newColumnName}
+                  onChange={(e) => setNewColumnName(e.target.value)}
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter column name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Column Type
+                </label>
+                <select
+                  value={newColumnType}
+                  onChange={(e) => setNewColumnType(e.target.value as 'text' | 'select' | 'boolean')}
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="text">Text</option>
+                  <option value="select">Select</option>
+                  <option value="boolean">Boolean</option>
+                </select>
+              </div>
+              {newColumnType === 'select' && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Options (comma-separated)
+                  </label>
+                  <input
+                    type="text"
+                    value={newColumnOptions.join(', ')}
+                    onChange={(e) => setNewColumnOptions(e.target.value.split(',').map(opt => opt.trim()).filter(Boolean))}
+                    className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Option 1, Option 2, Option 3"
+                  />
+                </div>
+              )}
+              <div className="flex gap-2 pt-4">
+                <button
+                  onClick={addColumn}
+                  className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Column
+                </button>
+                <button
+                  onClick={() => {
+                    setShowAddColumn(false);
+                    setNewColumnName('');
+                    setNewColumnType('text');
+                    setNewColumnOptions([]);
+                  }}
+                  className="flex-1 bg-slate-300 text-slate-700 py-2 px-4 rounded-lg hover:bg-slate-400 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Column Button */}
+      {onColumnUpdate && (
+        <div className="mt-4 flex justify-center">
+          <button
+            onClick={() => setShowAddColumn(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Add Column
+          </button>
+        </div>
+      )}
     </div>
   );
 };
-
 
 export default DataTable;

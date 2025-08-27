@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react';
-import { Plus, Download, Building2, Database, BarChart3, TrendingUp, Users, RefreshCw } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { Plus, Download, Building2, Database, BarChart3, TrendingUp, Users } from 'lucide-react';
 
-import type { Column, SortConfig, Filters, DataRecord } from './types';
+import type { Column, SortConfig, Filters, DataRecord, ColumnVisibility } from './types';
 import { useM88Data } from './hooks/useM88data';
 
 // Components
@@ -76,6 +76,15 @@ const M88DatabaseUI = () => {
 
   const filteredData = getFilteredData(searchTerm, filters);
   const analytics = getAnalytics(filteredData);
+
+  // Initialize column visibility when columns change
+  useEffect(() => {
+    const visibility: ColumnVisibility = {};
+    columns.forEach((col, index) => {
+      visibility[col.key] = index < 8; // Show first 8 columns by default
+    });
+    setColumnVisibility(visibility);
+  }, [columns]);
 
   const handleSort = (key: string) => {
     setSortConfig(prev => ({
@@ -168,7 +177,7 @@ const M88DatabaseUI = () => {
 
       <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
         {/* Analytics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <AnalyticsCard
             title="Total Records"
             value={analytics.total}
@@ -194,7 +203,7 @@ const M88DatabaseUI = () => {
             icon={<Users className="w-5 h-5" />}
             color="amber"
           />
-        </div>
+        </div> */}
 
         {/* Search and Filters */}
         <div className="space-y-6">
@@ -212,6 +221,9 @@ const M88DatabaseUI = () => {
               filters={filters}
               onFiltersChange={setFilters}
               getUniqueValues={getUniqueValues}
+              columns={columns}
+              columnVisibility={columnVisibility}
+              onColumnVisibilityChange={setColumnVisibility}
             />
           )}
         </div>
@@ -220,11 +232,12 @@ const M88DatabaseUI = () => {
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200/50 overflow-hidden">
           <DataTable
             data={sortedData}
-            columns={columns}
+            columns={columns.filter(col => columnVisibility[col.key])}
             sortConfig={sortConfig}
             onSort={handleSort}
             onEdit={setEditingRecord}
             onDelete={handleDelete}
+            onColumnUpdate={setColumns}
           />
         </div>
       </main>

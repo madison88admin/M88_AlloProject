@@ -43,6 +43,7 @@ export interface Column {
     fa_heads?: string;
     [key: string]: any;
   }
+
  
   export interface Filters {
     status: string;
