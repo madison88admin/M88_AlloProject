@@ -74,7 +74,22 @@ const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factor
     { key: 'fa_singfore', label: 'FA Singfore', type: 'text', width: '120px' },
     { key: 'fa_heads', label: 'FA Heads', type: 'text', width: '120px' },
   ];
-  const factoryColumns: Column[] = companyColumns.filter(col => col.key !== 'all_brand');
+  //const factoryColumns: Column[] = companyColumns.filter(col => col.key !== 'all_brand');
+
+  const excludeKeys = [
+    'all_brand',
+    'fa_wuxi',
+    'fa_hz',
+    'fa_pt',
+    'fa_korea',
+    'fa_singfore',
+    'fa_heads'
+  ];
+  
+  const factoryColumns: Column[] = companyColumns.filter(
+    col => !excludeKeys.includes(col.key)
+  );
+  
 
   // Use correct columns based on tableType
   const columns = tableType === 'company' ? companyColumns : factoryColumns;
