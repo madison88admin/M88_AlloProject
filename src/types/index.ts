@@ -11,7 +11,7 @@ export interface Column {
     id: number;
     all_brand: string;
     brand_visible_to_factory?: string;
-    brand_classification?: 'Top' | 'Growth' | 'Emerging' | 'Maintain' | 'Divest';
+    brand_classification?: 'Top' | 'Growth' | 'Emerging' | 'Maintain' | 'Divest' | 'Early Engagement' | 'Growth/Divest';
     status?: 'Active' | 'Inactive' | 'In Development' | 'On hold';
     terms_of_shipment?: 'FOB' | 'LDP';
     lead_pbd?: string;
@@ -35,14 +35,11 @@ export interface Column {
     pt_ujump_local_md?: string;
     hz_u_jump_shipping?: string;
     pt_ujump_shipping?: string;
-    fa_wuxi?: string;
-    fa_hz?: string;
-    fa_pt?: string;
-    fa_korea?: string;
-    fa_singfore?: string;
-    fa_heads?: string;
+    factory?: string;
+    allocation?: string;
     [key: string]: any;
   }
+
  
   export interface Filters {
     status: string;
@@ -56,8 +53,12 @@ export interface Column {
   }
  
   export interface Analytics {
-    total: number;
-    active: number;
-    topTier: number;
-    filtered: number;
-  }
+  total: number;
+  active: number;
+  topTier: number;
+  filtered: number;
+}
+
+export interface ColumnVisibility {
+  [key: string]: boolean;
+}
