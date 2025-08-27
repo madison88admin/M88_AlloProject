@@ -28,8 +28,12 @@ export const mockData: DataRecord[] = [
     pt_ujump_local_md: '',
     hz_u_jump_shipping: '',
     pt_ujump_shipping: '',
-    factory: '',
-    allocation: 'PT-UWU'
+    fa_wuxi: '',
+    fa_hz: '',
+    fa_pt: 'PT-UWU',
+    fa_korea: '',
+    fa_singfore: '',
+    fa_heads: ''
   },
   {
     id: 2,
@@ -58,8 +62,12 @@ export const mockData: DataRecord[] = [
     pt_ujump_local_md: 'Della',
     hz_u_jump_shipping: 'Nauroh',
     pt_ujump_shipping: 'Susan',
-    factory: 'Siti',
-    allocation: 'PT-UWU'
+    fa_wuxi: '',
+    fa_hz: '',
+    fa_pt: 'PT-UWU',
+    fa_korea: '',
+    fa_singfore: '',
+    fa_heads: 'Siti'
   },
   {
     id: 3,
@@ -88,8 +96,12 @@ export const mockData: DataRecord[] = [
     pt_ujump_local_md: '0',
     hz_u_jump_shipping: 'Tiffany',
     pt_ujump_shipping: 'Imas',
-    factory: 'HZ-U',
-    allocation: 'PT-UWU'
+    fa_wuxi: '',
+    fa_hz: 'HZ-U',
+    fa_pt: 'PT-UWU',
+    fa_korea: '',
+    fa_singfore: '',
+    fa_heads: ''
   },
   {
     id: 4,
@@ -118,8 +130,12 @@ export const mockData: DataRecord[] = [
     pt_ujump_local_md: '0',
     hz_u_jump_shipping: 'Susan',
     pt_ujump_shipping: 'Imas',
-    factory: 'PT-UWU',
-    allocation: ''
+    fa_wuxi: '',
+    fa_hz: '',
+    fa_pt: 'PT-UWU',
+    fa_korea: '',
+    fa_singfore: '',
+    fa_heads: ''
   },
   {
     id: 5,
@@ -148,7 +164,11 @@ export const mockData: DataRecord[] = [
     pt_ujump_local_md: 'Nauroh',
     hz_u_jump_shipping: 'Susan',
     pt_ujump_shipping: 'Imas',
-    factory: 'HZ-U',
-    allocation: 'PT-UWU'
+    fa_wuxi: '',
+    fa_hz: 'HZ-U',
+    fa_pt: 'PT-UWU',
+    fa_korea: '',
+    fa_singfore: '',
+    fa_heads: ''
   }
 ];

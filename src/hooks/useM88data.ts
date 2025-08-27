@@ -39,11 +39,10 @@ export const useM88Data = () => {
     }
   };
 
-  // Updated to accept the full record instead of just ID
-  const handleDeleteRecord = async (record: DataRecord) => {
+  const handleDeleteRecord = async (id: number) => {
     try {
-      await deleteM88Record(record);
-      setData(prev => prev.filter(r => r.id !== record.id));
+      await deleteM88Record(id);
+      setData(prev => prev.filter(r => r.id !== id));
     } catch (err) {
       throw new Error(err instanceof Error ? err.message : 'Failed to delete record');
     }

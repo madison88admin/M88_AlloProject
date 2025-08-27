@@ -1,9 +1,14 @@
 import { useState, useMemo, useEffect } from 'react';
+<<<<<<< HEAD
 import { Plus, Download, Building2, Database, BarChart3, TrendingUp, Users, RefreshCw, Lock, Eye, EyeOff, UserPlus, LogIn, Factory, Building, Shield, User } from 'lucide-react';
+=======
+import { Plus, Download, Building2, RefreshCw } from 'lucide-react';
+>>>>>>> 72986788e3c3252c3dd9d0e2e296e29770d7ed34
 
 // Types
 type UserRole = 'madison88' | 'factory';
 
+<<<<<<< HEAD
 type User = {
   id: number;
   email: string;
@@ -68,6 +73,95 @@ const useAuth = (): AuthContextType => {
       }
     }
   }, []);
+=======
+// Components
+import { LoadingScreen } from './components/LoadingScreen';
+import { ErrorScreen } from './components/ErrorScreen';
+// import { AnalyticsCard } from './components/AnalyticsCard';
+import { SearchBar } from './components/SearchBar';
+import { FiltersPanel } from './components/FiltersPanel';
+import { DataTable } from './components/DataTable';
+import { RecordModal } from './components/RecordModal';
+
+
+const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factory', onLogout: () => void }) => {
+  const {
+    loading,
+    error,
+    loadData,
+    handleSaveRecord,
+    handleDeleteRecord,
+    handleAddRecord,
+    handleRefreshData,
+    getFilteredData,
+    getUniqueValues
+  } = useM88Data();
+
+  // UI State
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState<Filters>({
+    status: '',
+    brand_classification: '',
+    terms_of_shipment: ''
+  });
+  const [showFilters, setShowFilters] = useState(false);
+  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: '', direction: '' });
+  const [editingRecord, setEditingRecord] = useState<DataRecord | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+
+  // Define columns for both table types
+  const companyColumns: Column[] = [
+    { key: 'all_brand', label: 'All Brand', type: 'text', required: true, width: '150px' },
+    { key: 'brand_visible_to_factory', label: 'Brand Visible to Factory', type: 'text', width: '150px' },
+    { key: 'brand_classification', label: 'Brand Classification', type: 'select', options: ['Top', 'Growth', 'Emerging', 'Maintain', 'Divest', 'Early Engagement', 'Growth/Divest'], width: '150px' },
+    { key: 'status', label: 'Status', type: 'select', options: ['Active', 'Inactive', 'In Development', 'On hold'], width: '150px' },
+    { key: 'terms_of_shipment', label: 'Terms', type: 'select', options: ['FOB', 'LDP'], width: '120px' },
+    { key: 'lead_pbd', label: 'Lead PBD', type: 'text', width: '150px' },
+    { key: 'support_pbd', label: 'Support PBD', type: 'text', width: '150px' },
+    { key: 'td', label: 'TD', type: 'text', width: '120px' },
+    { key: 'nyo_planner', label: 'NYO Planner', type: 'text', width: '150px' },
+    { key: 'indo_m88_md', label: 'Indo M88 MD', type: 'text', width: '150px' },
+    { key: 'm88_qa', label: 'M88 QA', type: 'text', width: '120px' },
+    { key: 'mlo_planner', label: 'MLO Planner', type: 'text', width: '150px' },
+    { key: 'mlo_logistic', label: 'MLO Logistic', type: 'text', width: '150px' },
+    { key: 'mlo_purchasing', label: 'MLO Purchasing', type: 'text', width: '150px' },
+    { key: 'mlo_costing', label: 'MLO Costing', type: 'text', width: '120px' },
+    { key: 'wuxi_moretti', label: 'Wuxi Moretti', type: 'text', width: '120px' },
+    { key: 'hz_u_jump', label: 'HZ U-JUMP', type: 'text', width: '120px' },
+    { key: 'pt_u_jump', label: 'PT U-JUMP', type: 'text', width: '120px' },
+    { key: 'korea_mel', label: 'Korea Mel', type: 'text', width: '120px' },
+    { key: 'singfore', label: 'Singfore', type: 'text', width: '120px' },
+    { key: 'heads_up', label: 'Heads Up', type: 'text', width: '120px' },
+    { key: 'hz_pt_u_jump_senior_md', label: 'HZ/PT U-JUMP Senior MD', type: 'text', width: '180px' },
+    { key: 'pt_ujump_local_md', label: 'PT UJUMP Local MD', type: 'text', width: '150px' },
+    { key: 'hz_u_jump_shipping', label: 'HZ U-JUMP Shipping', type: 'text', width: '150px' },
+    { key: 'pt_ujump_shipping', label: 'PT UJUMP Shipping', type: 'text', width: '150px' },
+    { key: 'fa_wuxi', label: 'FA Wuxi', type: 'text', width: '120px' },
+    { key: 'fa_hz', label: 'FA HZ', type: 'text', width: '120px' },
+    { key: 'fa_pt', label: 'FA PT', type: 'text', width: '120px' },
+    { key: 'fa_korea', label: 'FA Korea', type: 'text', width: '120px' },
+    { key: 'fa_singfore', label: 'FA Singfore', type: 'text', width: '120px' },
+    { key: 'fa_heads', label: 'FA Heads', type: 'text', width: '120px' },
+  ];
+  const factoryColumns: Column[] = companyColumns.filter(col => col.key !== 'all_brand');
+
+  // Use correct columns based on tableType
+  const columns = tableType === 'company' ? companyColumns : factoryColumns;
+  const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>({});
+
+  const filteredData = getFilteredData(searchTerm, filters);
+
+  // Initialize column visibility when columns change
+  useEffect(() => {
+    setColumnVisibility(prev => {
+      const newVisibility: ColumnVisibility = {};
+      columns.forEach((col, index) => {
+        newVisibility[col.key] = prev[col.key] !== undefined ? prev[col.key] : index < 8;
+      });
+      return newVisibility;
+    });
+  }, [columns]);
+>>>>>>> 72986788e3c3252c3dd9d0e2e296e29770d7ed34
 
   const login = async (email: string, password: string, role: UserRole) => {
     setLoading(true);
@@ -552,7 +646,65 @@ const MainDashboard = ({ user, onLogout }: { user: User; onLogout: () => void })
     }
   };
 
+<<<<<<< HEAD
   const analytics = getAnalytics();
+=======
+  // Enhanced save record handler that applies FA assignments
+  const handleEnhancedSaveRecord = async (record: DataRecord) => {
+    try {
+      // Apply FA assignment logic before saving
+      const recordWithFAUpdates = updateFAAssignments(record);
+      return await handleSaveRecord(recordWithFAUpdates);
+    } catch (err) {
+      throw err; // Re-throw so the caller can handle it
+    }
+  };
+
+  // Enhanced add record handler that applies FA assignments  
+  const handleEnhancedAddRecord = async (record: Omit<DataRecord, 'id'>) => {
+    try {
+      // Apply FA assignment logic before adding
+      const recordWithFAUpdates = updateFAAssignments(record as DataRecord);
+      return await handleAddRecord(recordWithFAUpdates);
+    } catch (err) {
+      throw err; // Re-throw so the caller can handle it
+    }
+  };
+
+  const handleRefresh = async () => {
+    try {
+      await handleRefreshData();
+      // Clear filters and search after refresh
+      setSearchTerm('');
+      setFilters({
+        status: '',
+        brand_classification: '',
+        terms_of_shipment: ''
+      });
+      setSortConfig({ key: '', direction: '' });
+    } catch (err) {
+      alert('Failed to refresh data. Please try again.');
+    }
+  };
+
+  // Add a helper to determine editable columns for factory
+  const getEditableColumns = (type: 'company' | 'factory') => {
+    if (type === 'company') return companyColumns.map(col => col.key); // all editable for company
+    // Only allow editing for columns with keys starting with these prefixes
+    return factoryColumns
+      .filter(col =>
+        col.key.startsWith('hz_pt_') ||
+        col.key.startsWith('pt_') ||
+        col.key.startsWith('hz_u_') ||
+        col.key.startsWith('pt_u_')
+      )
+      .map(col => col.key);
+  };
+  const editableColumns = getEditableColumns(tableType);
+
+  if (loading) return <LoadingScreen />;
+  if (error) return <ErrorScreen error={error} onRetry={loadData} />;
+>>>>>>> 72986788e3c3252c3dd9d0e2e296e29770d7ed34
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/30">
@@ -573,6 +725,7 @@ const MainDashboard = ({ user, onLogout }: { user: User; onLogout: () => void })
               </div>
             </div>
             <div className="flex items-center gap-3">
+<<<<<<< HEAD
               <div className="flex items-center gap-3 px-4 py-2 bg-slate-100 rounded-xl">
                 <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
                   <span className="text-white text-sm font-medium">
@@ -586,6 +739,17 @@ const MainDashboard = ({ user, onLogout }: { user: User; onLogout: () => void })
               </div>
               <button
                 onClick={onLogout}
+=======
+              <button
+                onClick={onLogout}
+                className="flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-white hover:bg-red-500 rounded-xl transition-all duration-200 border border-red-200"
+                title="Log out"
+              >
+                Log out
+              </button>
+              <button 
+                onClick={handleRefresh}
+>>>>>>> 72986788e3c3252c3dd9d0e2e296e29770d7ed34
                 className="flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all duration-200"
               >
                 <Lock className="w-4 h-4" />
@@ -599,6 +763,7 @@ const MainDashboard = ({ user, onLogout }: { user: User; onLogout: () => void })
       <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
         {/* Analytics Cards - Role Based */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/*
           <AnalyticsCard
             title={user.role === 'madison88' ? 'Total Records' : 'Assigned Brands'}
             value={analytics.total}
@@ -621,8 +786,10 @@ const MainDashboard = ({ user, onLogout }: { user: User; onLogout: () => void })
             permission="analytics"
             user={user}
           />
+          */}
         </div>
 
+<<<<<<< HEAD
         {/* Search and Actions */}
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-slate-200/50">
           <div className="flex items-center gap-4">
@@ -632,6 +799,28 @@ const MainDashboard = ({ user, onLogout }: { user: User; onLogout: () => void })
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder={user.role === 'madison88' ? "Search all records..." : "Search assigned brands..."}
               className="flex-1 px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+=======
+        {/* Search and Filters */}
+        <div className="space-y-6">
+          <SearchBar
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+            onToggleFilters={() => setShowFilters(!showFilters)}
+            showFilters={showFilters}
+            recordCount={filteredData.length}
+            onRefresh={loadData}
+          />
+          
+          {showFilters && (
+            <FiltersPanel
+              filters={filters}
+              onFiltersChange={setFilters}
+              getUniqueValues={getUniqueValues}
+              columns={columns}
+              columnVisibility={columnVisibility}
+              onColumnVisibilityChange={setColumnVisibility}
+              onClose={() => setShowFilters(false)}
+>>>>>>> 72986788e3c3252c3dd9d0e2e296e29770d7ed34
             />
             <PermissionGuard permission="export_data" user={user}>
               <button className="flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all duration-200">
@@ -648,6 +837,7 @@ const MainDashboard = ({ user, onLogout }: { user: User; onLogout: () => void })
           </div>
         </div>
 
+<<<<<<< HEAD
         {/* Role-based Content */}
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 border border-slate-200/50">
           <div className="text-center">
@@ -679,6 +869,20 @@ const MainDashboard = ({ user, onLogout }: { user: User; onLogout: () => void })
               </ul>
             </div>
           </div>
+=======
+        {/* Data Table */}
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200/50 overflow-hidden">
+          <DataTable
+            data={sortedData}
+            columns={columns.filter(col => columnVisibility[col.key])}
+            sortConfig={sortConfig}
+            onSort={handleSort}
+            onEdit={setEditingRecord}
+            onDelete={(record) => handleDelete(record.id)}
+            onCellUpdate={handleCellUpdate}
+            editableColumns={editableColumns}
+          />
+>>>>>>> 72986788e3c3252c3dd9d0e2e296e29770d7ed34
         </div>
       </main>
     </div>
