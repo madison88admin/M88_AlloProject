@@ -64,8 +64,12 @@ const M88DatabaseUI = () => {
     { key: 'pt_ujump_local_md', label: 'PT UJUMP Local MD', type: 'text', width: '150px' },
     { key: 'hz_u_jump_shipping', label: 'HZ U-JUMP Shipping', type: 'text', width: '150px' },
     { key: 'pt_ujump_shipping', label: 'PT UJUMP Shipping', type: 'text', width: '150px' },
-    { key: 'factory', label: 'Factory', type: 'text', width: '120px' },
-    { key: 'allocation', label: 'Allocation', type: 'text', width: '120px' },
+    { key: 'fa_wuxi', label: 'FA Wuxi', type: 'text', width: '120px' },
+    { key: 'fa_hz', label: 'FA HZ', type: 'text', width: '120px' },
+    { key: 'fa_pt', label: 'FA PT', type: 'text', width: '120px' },
+    { key: 'fa_korea', label: 'FA Korea', type: 'text', width: '120px' },
+    { key: 'fa_singfore', label: 'FA Singfore', type: 'text', width: '120px' },
+    { key: 'fa_heads', label: 'FA Heads', type: 'text', width: '120px' },
   ]);
   const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>({});
 
@@ -219,6 +223,8 @@ const M88DatabaseUI = () => {
               columns={columns}
               columnVisibility={columnVisibility}
               onColumnVisibilityChange={setColumnVisibility}
+              onColumnUpdate={setColumns}
+              onClose={() => setShowFilters(false)}
             />
           )}
         </div>
