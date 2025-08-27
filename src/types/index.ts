@@ -57,8 +57,12 @@ export interface Column {
   }
  
   export interface Analytics {
-    total: number;
-    active: number;
-    topTier: number;
-    filtered: number;
-  }
+  total: number;
+  active: number;
+  topTier: number;
+  filtered: number;
+}
+
+export interface ColumnVisibility {
+  [key: string]: boolean;
+}

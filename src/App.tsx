@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Plus, Download, Building2, Database, BarChart3, TrendingUp, Users } from 'lucide-react';
+import { Plus, Download, Building2, Database, BarChart3, TrendingUp, Users, RefreshCw } from 'lucide-react';
 
 import type { Column, SortConfig, Filters, DataRecord, ColumnVisibility } from './types';
 import { useM88Data } from './hooks/useM88data';
@@ -38,41 +38,36 @@ const M88DatabaseUI = () => {
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: '', direction: '' });
   const [editingRecord, setEditingRecord] = useState<DataRecord | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
-
-  const columns: Column[] = [
-    { key: 'all_brand', label: 'Brand', type: 'text', required: true },
-    { key: 'brand_visible_to_factory', label: 'Factory Brand', type: 'text' },
-    { key: 'brand_classification', label: 'Classification', type: 'select', options: ['Top', 'Growth', 'Emerging', 'Maintain', 'Divest'] },
-    { key: 'status', label: 'Status', type: 'select', options: ['Active', 'Inactive', 'In Development', 'On hold'] },
-    { key: 'terms_of_shipment', label: 'Terms', type: 'select', options: ['FOB', 'LDP'] },
-    { key: 'lead_pbd', label: 'Lead PBD', type: 'text' },
-    { key: 'support_pbd', label: 'Support PBD', type: 'text' },
-    // Additional columns from your database
-    { key: 'td', label: 'TD', type: 'text' },
-    { key: 'nyo_planner', label: 'NYO Planner', type: 'text' },
-    { key: 'indo_m88_md', label: 'Indo M88 MD', type: 'text' },
-    { key: 'm88_qa', label: 'M88 QA', type: 'text' },
-    { key: 'mlo_planner', label: 'MLO Planner', type: 'text' },
-    { key: 'mlo_logistic', label: 'MLO Logistic', type: 'text' },
-    { key: 'mlo_purchasing', label: 'MLO Purchasing', type: 'text' },
-    { key: 'mlo_costing', label: 'MLO Costing', type: 'text' },
-    { key: 'wuxi_moretti', label: 'Wuxi Moretti', type: 'text' },
-    { key: 'hz_u_jump', label: 'HZ U Jump', type: 'text' },
-    { key: 'pt_u_jump', label: 'PT U Jump', type: 'text' },
-    { key: 'korea_mel', label: 'Korea Mel', type: 'text' },
-    { key: 'singfore', label: 'Singfore', type: 'text' },
-    { key: 'heads_up', label: 'Heads Up', type: 'text' },
-    { key: 'hz_pt_u_jump_senior_md', label: 'HZ PT U Jump Senior MD', type: 'text' },
-    { key: 'pt_ujump_local_md', label: 'PT Ujump Local MD', type: 'text' },
-    { key: 'hz_u_jump_shipping', label: 'HZ U Jump Shipping', type: 'text' },
-    { key: 'pt_ujump_shipping', label: 'PT Ujump Shipping', type: 'text' },
-    { key: 'fa_wuxi', label: 'FA Wuxi', type: 'text' },
-    { key: 'fa_hz', label: 'FA HZ', type: 'text' },
-    { key: 'fa_pt', label: 'FA PT', type: 'text' },
-    { key: 'fa_korea', label: 'FA Korea', type: 'text' },
-    { key: 'fa_singfore', label: 'FA Singfore', type: 'text' },
-    { key: 'fa_heads', label: 'FA Heads', type: 'text' },
-  ];
+  const [columns, setColumns] = useState<Column[]>([
+    { key: 'all_brand', label: 'Brand', type: 'text', required: true, width: '150px' },
+    { key: 'brand_visible_to_factory', label: 'Factory Brand', type: 'text', width: '150px' },
+    { key: 'brand_classification', label: 'Classification', type: 'select', options: ['Top', 'Growth', 'Emerging', 'Maintain', 'Divest', 'Early Engagement', 'Growth/Divest'], width: '150px' },
+    { key: 'status', label: 'Status', type: 'select', options: ['Active', 'Inactive', 'In Development', 'On hold'], width: '150px' },
+    { key: 'terms_of_shipment', label: 'Terms', type: 'select', options: ['FOB', 'LDP'], width: '120px' },
+    { key: 'lead_pbd', label: 'Lead PBD', type: 'text', width: '150px' },
+    { key: 'support_pbd', label: 'Support PBD', type: 'text', width: '150px' },
+    { key: 'td', label: 'TD', type: 'text', width: '120px' },
+    { key: 'nyo_planner', label: 'NYO Planner', type: 'text', width: '150px' },
+    { key: 'indo_m88_md', label: 'Indo M88 MD', type: 'text', width: '150px' },
+    { key: 'm88_qa', label: 'M88 QA', type: 'text', width: '120px' },
+    { key: 'mlo_planner', label: 'MLO Planner', type: 'text', width: '150px' },
+    { key: 'mlo_logistic', label: 'MLO Logistic', type: 'text', width: '150px' },
+    { key: 'mlo_purchasing', label: 'MLO Purchasing', type: 'text', width: '150px' },
+    { key: 'mlo_costing', label: 'MLO Costing', type: 'text', width: '120px' },
+    { key: 'wuxi_moretti', label: 'Wuxi Moretti', type: 'text', width: '120px' },
+    { key: 'hz_u_jump', label: 'HZ U-JUMP', type: 'text', width: '120px' },
+    { key: 'pt_u_jump', label: 'PT U-JUMP', type: 'text', width: '120px' },
+    { key: 'korea_mel', label: 'Korea Mel', type: 'text', width: '120px' },
+    { key: 'singfore', label: 'Singfore', type: 'text', width: '120px' },
+    { key: 'heads_up', label: 'Heads Up', type: 'text', width: '120px' },
+    { key: 'hz_pt_u_jump_senior_md', label: 'HZ/PT U-JUMP Senior MD', type: 'text', width: '180px' },
+    { key: 'pt_ujump_local_md', label: 'PT UJUMP Local MD', type: 'text', width: '150px' },
+    { key: 'hz_u_jump_shipping', label: 'HZ U-JUMP Shipping', type: 'text', width: '150px' },
+    { key: 'pt_ujump_shipping', label: 'PT UJUMP Shipping', type: 'text', width: '150px' },
+    { key: 'factory', label: 'Factory', type: 'text', width: '120px' },
+    { key: 'allocation', label: 'Allocation', type: 'text', width: '120px' },
+  ]);
+  const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>({});
 
   const filteredData = getFilteredData(searchTerm, filters);
   const analytics = getAnalytics(filteredData);
