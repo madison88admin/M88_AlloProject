@@ -1,4 +1,4 @@
-import { ArrowUpDown, Edit2, X, Database, Plus, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowUpDown, Edit2, X, Database, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import type { DataRecord, Column, SortConfig } from '../types';
 import { StatusBadge } from './StatusBadge';
@@ -10,8 +10,9 @@ interface DataTableProps {
   sortConfig: SortConfig;
   onSort: (key: string) => void;
   onEdit: (row: DataRecord) => void;
-  onDelete: (id: number) => void;
+  onDelete: (record: DataRecord) => void; // Updated to accept full record
   onColumnUpdate?: (columns: Column[]) => void;
+  onCellUpdate?: (rowId: number, columnKey: string, newValue: any) => void;
 }
 
 export const DataTable = ({
@@ -21,13 +22,11 @@ export const DataTable = ({
   onSort,
   onEdit,
   onDelete,
-  onColumnUpdate
+  onColumnUpdate,
+  onCellUpdate
 }: DataTableProps) => {
   const [editingColumn, setEditingColumn] = useState<string | null>(null);
-  const [newColumnName, setNewColumnName] = useState('');
-  const [showAddColumn, setShowAddColumn] = useState(false);
-  const [newColumnType, setNewColumnType] = useState<'text' | 'select' | 'boolean'>('text');
-  const [newColumnOptions, setNewColumnOptions] = useState<string[]>([]);
+  const [editingCell, setEditingCell] = useState<{rowId: number, columnKey: string} | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [showLeftScroll, setShowLeftScroll] = useState(false);
@@ -42,6 +41,9 @@ export const DataTable = ({
   // Use all columns passed from parent (filtered by visibility in App.tsx)
   const visibleColumns = columns;
 
+  // Show all data instead of paginated data
+  const currentData = data;
+
   const updateColumnName = (columnKey: string, newName: string) => {
     if (!onColumnUpdate) return;
     
@@ -52,31 +54,71 @@ export const DataTable = ({
     setEditingColumn(null);
   };
 
+  const handleCellEdit = (rowId: number, columnKey: string, currentValue: any) => {
+    setEditingCell({ rowId, columnKey });
+  };
+
+  const handleCellUpdate = (rowId: number, columnKey: string, newValue: any) => {
+    if (onCellUpdate) {
+      onCellUpdate(rowId, columnKey, newValue);
+    }
+    setEditingCell(null);
+  };
+
+  const renderCellContent = (row: DataRecord, col: Column) => {
+    const isEditing = editingCell?.rowId === row.id && editingCell?.columnKey === col.key;
+    
+    if (isEditing) {
+      return (
+        <input
+          ref={inputRef}
+          type="text"
+          defaultValue={row[col.key] || ''}
+          className="bg-white border border-blue-500 rounded px-2 py-1 text-sm w-full"
+          onBlur={(e) => handleCellUpdate(row.id, col.key, e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              handleCellUpdate(row.id, col.key, (e.target as HTMLInputElement).value);
+            } else if (e.key === 'Escape') {
+              setEditingCell(null);
+            }
+          }}
+          autoFocus
+        />
+      );
+    }
+
+    if (col.key === 'status') {
+      return <StatusBadge status={String(row[col.key] ?? '')} />;
+    } else if (col.key === 'brand_classification') {
+      return <ClassificationBadge classification={String(row[col.key] ?? '')} />;
+    } else if (col.type === 'boolean') {
+      return (
+        <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${
+          row[col.key] 
+            ? 'bg-emerald-100 text-emerald-800' 
+            : 'bg-slate-100 text-slate-600'
+        }`}>
+          {row[col.key] ? 'Yes' : 'No'}
+        </div>
+      );
+    } else {
+      return (
+        <span 
+          className={`${row[col.key] ? 'text-slate-900' : 'text-slate-400'} cursor-pointer hover:bg-slate-100 px-2 py-1 rounded`}
+          onClick={() => handleCellEdit(row.id, col.key, row[col.key])}
+        >
+          {row[col.key] || '—'}
+        </span>
+      );
+    }
+  };
+
   const deleteColumn = (columnKey: string) => {
     if (!onColumnUpdate) return;
     
     const updatedColumns = columns.filter(col => col.key !== columnKey);
     onColumnUpdate(updatedColumns);
-  };
-
-  const addColumn = () => {
-    if (!newColumnName.trim() || !onColumnUpdate) return;
-
-    const newColumn: Column = {
-      key: `col_${Date.now()}`,
-      label: newColumnName,
-      type: newColumnType,
-      options: newColumnType === 'select' ? newColumnOptions : undefined,
-      width: '150px'
-    };
-
-    const updatedColumns = [...columns, newColumn];
-    onColumnUpdate(updatedColumns);
-
-    setNewColumnName('');
-    setNewColumnType('text');
-    setNewColumnOptions([]);
-    setShowAddColumn(false);
   };
 
   const checkScrollPosition = () => {
@@ -123,18 +165,6 @@ export const DataTable = ({
   return (
     <div className="overflow-hidden">
       <div className="relative">
-        {/* Scroll Progress Bar - Moved to top */}
-        <div className="mb-4 h-2 bg-slate-100 rounded-full overflow-hidden">
-          <div 
-            className="h-full bg-blue-500 transition-all duration-300 rounded-full"
-            style={{
-              width: scrollContainerRef.current 
-                ? `${(scrollContainerRef.current.scrollLeft / (scrollContainerRef.current.scrollWidth - scrollContainerRef.current.clientWidth)) * 100}%`
-                : '0%'
-            }}
-          />
-        </div>
-
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
           {/* Scroll Controls - Positioned at top of table */}
           <div className="flex items-center justify-center p-4 border-b border-slate-200 bg-slate-50">
@@ -161,7 +191,7 @@ export const DataTable = ({
 
           <div 
             ref={scrollContainerRef}
-            className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100"
+            className="overflow-auto max-h-[600px] scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100"
             style={{ scrollbarWidth: 'thin' }}
           >
             <table className="w-full min-w-max">
@@ -224,41 +254,25 @@ export const DataTable = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {data.map((row) => (
-                  <tr key={row.id} className="odd:bg-slate-50/30 hover:bg-slate-50 transition-colors duration-150 group">
+                {currentData.map((row, index) => (
+                  <tr key={row.id} className="odd:bg-slate-50/30 hover:bg-blue-50/30 transition-all duration-150 group border-b border-slate-100 last:border-b-0">
                     {visibleColumns.map(col => (
-                      <td key={col.key} className="py-4 px-6 text-sm whitespace-nowrap min-w-[150px]">
-                        {col.key === 'status' ? (
-                          <StatusBadge status={String(row[col.key] ?? '')} />
-                        ) : col.key === 'brand_classification' ? (
-                          <ClassificationBadge classification={String(row[col.key] ?? '')} />
-                        ) : col.type === 'boolean' ? (
-                          <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${
-                            row[col.key] 
-                              ? 'bg-emerald-100 text-emerald-800' 
-                              : 'bg-slate-100 text-slate-600'
-                          }`}>
-                            {row[col.key] ? 'Yes' : 'No'}
-                          </div>
-                        ) : (
-                          <span className={`${row[col.key] ? 'text-slate-900' : 'text-slate-400'}`}>
-                            {row[col.key] || '—'}
-                          </span>
-                        )}
+                      <td key={col.key} className="py-4 px-6 text-sm whitespace-nowrap min-w-[150px] border-r border-slate-100 last:border-r-0">
+                        {renderCellContent(row, col)}
                       </td>
                     ))}
-                    <td className="py-4 px-6 text-right sticky right-0 bg-white shadow-[-2px_0_0_0_rgba(0,0,0,0.05)] group-hover:bg-slate-50">
+                    <td className="py-4 px-6 text-right sticky right-0 bg-white shadow-[-2px_0_0_0_rgba(0,0,0,0.05)] group-hover:bg-blue-50/30 border-l border-slate-200">
                       <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                         <button
                           onClick={() => onEdit(row)}
-                          className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200"
+                          className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-100 rounded-lg transition-all duration-200"
                           title="Edit"
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => onDelete(row.id)}
-                          className="p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
+                          onClick={() => onDelete(row)}
+                          className="p-2 text-slate-600 hover:text-red-600 hover:bg-red-100 rounded-lg transition-all duration-200"
                           title="Delete"
                         >
                           <X className="w-4 h-4" />
@@ -271,90 +285,6 @@ export const DataTable = ({
             </table>
           </div>
         </div>
-
-        {/* Add Column Modal */}
-        {showAddColumn && onColumnUpdate && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-96">
-              <h3 className="text-lg font-semibold mb-4">Add New Column</h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Column Name
-                  </label>
-                  <input
-                    type="text"
-                    value={newColumnName}
-                    onChange={(e) => setNewColumnName(e.target.value)}
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Enter column name"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Column Type
-                  </label>
-                  <select
-                    value={newColumnType}
-                    onChange={(e) => setNewColumnType(e.target.value as 'text' | 'select' | 'boolean')}
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="text">Text</option>
-                    <option value="select">Select</option>
-                    <option value="boolean">Boolean</option>
-                  </select>
-                </div>
-                {newColumnType === 'select' && (
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
-                      Options (comma-separated)
-                    </label>
-                    <input
-                      type="text"
-                      value={newColumnOptions.join(', ')}
-                      onChange={(e) => setNewColumnOptions(e.target.value.split(',').map(opt => opt.trim()).filter(Boolean))}
-                      className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Option 1, Option 2, Option 3"
-                    />
-                  </div>
-                )}
-                <div className="flex gap-2 pt-4">
-                  <button
-                    onClick={addColumn}
-                    className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Add Column
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowAddColumn(false);
-                      setNewColumnName('');
-                      setNewColumnType('text');
-                      setNewColumnOptions([]);
-                    }}
-                    className="flex-1 bg-slate-300 text-slate-700 py-2 px-4 rounded-lg hover:bg-slate-400 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Add Column Button */}
-        {onColumnUpdate && (
-          <div className="mt-4 flex justify-center">
-            <button
-              onClick={() => setShowAddColumn(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              Add Column
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );

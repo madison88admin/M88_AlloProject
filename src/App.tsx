@@ -3,6 +3,7 @@ import { Plus, Download, Building2, Database, BarChart3, TrendingUp, Users, Refr
 
 import type { Column, SortConfig, Filters, DataRecord, ColumnVisibility } from './types';
 import { useM88Data } from './hooks/useM88data';
+import { updateFAAssignments, isFactoryColumn } from './utils/faAssignments';
 
 // Components
 import { LoadingScreen } from './components/LoadingScreen';
@@ -39,9 +40,9 @@ const M88DatabaseUI = () => {
   const [editingRecord, setEditingRecord] = useState<DataRecord | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [columns, setColumns] = useState<Column[]>([
-    { key: 'all_brand', label: 'Brand', type: 'text', required: true, width: '150px' },
-    { key: 'brand_visible_to_factory', label: 'Factory Brand', type: 'text', width: '150px' },
-    { key: 'brand_classification', label: 'Classification', type: 'select', options: ['Top', 'Growth', 'Emerging', 'Maintain', 'Divest', 'Early Engagement', 'Growth/Divest'], width: '150px' },
+    { key: 'all_brand', label: 'All Brand', type: 'text', required: true, width: '150px' },
+    { key: 'brand_visible_to_factory', label: 'Brand Visible to Factory', type: 'text', width: '150px' },
+    { key: 'brand_classification', label: 'Brand Classification', type: 'select', options: ['Top', 'Growth', 'Emerging', 'Maintain', 'Divest', 'Early Engagement', 'Growth/Divest'], width: '150px' },
     { key: 'status', label: 'Status', type: 'select', options: ['Active', 'Inactive', 'In Development', 'On hold'], width: '150px' },
     { key: 'terms_of_shipment', label: 'Terms', type: 'select', options: ['FOB', 'LDP'], width: '120px' },
     { key: 'lead_pbd', label: 'Lead PBD', type: 'text', width: '150px' },
@@ -64,8 +65,13 @@ const M88DatabaseUI = () => {
     { key: 'pt_ujump_local_md', label: 'PT UJUMP Local MD', type: 'text', width: '150px' },
     { key: 'hz_u_jump_shipping', label: 'HZ U-JUMP Shipping', type: 'text', width: '150px' },
     { key: 'pt_ujump_shipping', label: 'PT UJUMP Shipping', type: 'text', width: '150px' },
-    { key: 'factory', label: 'Factory', type: 'text', width: '120px' },
-    { key: 'allocation', label: 'Allocation', type: 'text', width: '120px' },
+    { key: 'fa_wuxi', label: 'FA Wuxi', type: 'text', width: '120px' },
+    { key: 'fa_hz', label: 'FA HZ', type: 'text', width: '120px' },
+    { key: 'fa_pt', label: 'FA PT', type: 'text', width: '120px' },
+    { key: 'fa_korea', label: 'FA Korea', type: 'text', width: '120px' },
+    { key: 'fa_singfore', label: 'FA Singfore', type: 'text', width: '120px' },
+    { key: 'fa_heads', label: 'FA Heads', type: 'text', width: '120px' },
+
   ]);
   const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>({});
 
@@ -75,8 +81,8 @@ const M88DatabaseUI = () => {
   // Initialize column visibility when columns change
   useEffect(() => {
     const visibility: ColumnVisibility = {};
-    columns.forEach((col, index) => {
-      visibility[col.key] = index < 8; // Show first 8 columns by default
+    columns.forEach((col) => {
+      visibility[col.key] = true; // Show all columns by default
     });
     setColumnVisibility(visibility);
   }, [columns]);
@@ -108,6 +114,52 @@ const M88DatabaseUI = () => {
       await handleDeleteRecord(id);
     } catch (err) {
       alert('Failed to delete record. Please try again.');
+    }
+  };
+
+  // Handle individual cell updates with FA assignment logic
+  const handleCellUpdate = async (rowId: number, columnKey: string, newValue: any) => {
+    try {
+      // Find the current record
+      const currentRecord = sortedData.find(record => record.id === rowId);
+      if (!currentRecord) return;
+
+      // Update the specific field
+      const updatedRecord = { ...currentRecord, [columnKey]: newValue };
+
+      // Apply FA assignments if this is a factory column
+      const finalRecord = isFactoryColumn(columnKey) 
+        ? updateFAAssignments(updatedRecord)
+        : updatedRecord;
+
+      // Save to database using the existing hook
+      await handleSaveRecord(finalRecord);
+      
+    } catch (err) {
+      alert('Failed to update record. Please try again.');
+      console.error('Error updating record:', err);
+    }
+  };
+
+  // Enhanced save record handler that applies FA assignments
+  const handleEnhancedSaveRecord = async (record: DataRecord) => {
+    try {
+      // Apply FA assignment logic before saving
+      const recordWithFAUpdates = updateFAAssignments(record);
+      return await handleSaveRecord(recordWithFAUpdates);
+    } catch (err) {
+      throw err; // Re-throw so the caller can handle it
+    }
+  };
+
+  // Enhanced add record handler that applies FA assignments  
+  const handleEnhancedAddRecord = async (record: Omit<DataRecord, 'id'>) => {
+    try {
+      // Apply FA assignment logic before adding
+      const recordWithFAUpdates = updateFAAssignments(record as DataRecord);
+      return await handleAddRecord(recordWithFAUpdates);
+    } catch (err) {
+      throw err; // Re-throw so the caller can handle it
     }
   };
 
@@ -183,7 +235,6 @@ const M88DatabaseUI = () => {
             title="Active Brands"
             value={analytics.active}
             icon={<TrendingUp className="w-5 h-5" />}
-            trend={{ value: 12, isUp: true }}
             color="emerald"
           />
           <AnalyticsCard
@@ -227,6 +278,7 @@ const M88DatabaseUI = () => {
             onEdit={setEditingRecord}
             onDelete={handleDelete}
             onColumnUpdate={setColumns}
+            onCellUpdate={handleCellUpdate}
           />
         </div>
       </main>
@@ -237,9 +289,9 @@ const M88DatabaseUI = () => {
         onClose={() => setShowAddModal(false)}
         onSave={(record: DataRecord | Omit<DataRecord, 'id'>) => {
           if ('id' in (record as DataRecord)) {
-            return handleSaveRecord(record as DataRecord);
+            return handleEnhancedSaveRecord(record as DataRecord);
           }
-          return handleAddRecord(record as Omit<DataRecord, 'id'>);
+          return handleEnhancedAddRecord(record as Omit<DataRecord, 'id'>);
         }}
         columns={columns}
         title="Add New Record"
@@ -248,7 +300,7 @@ const M88DatabaseUI = () => {
       <RecordModal
         isOpen={!!editingRecord}
         onClose={() => setEditingRecord(null)}
-        onSave={(record: DataRecord | Omit<DataRecord, 'id'>) => handleSaveRecord(record as DataRecord)}
+        onSave={(record: DataRecord | Omit<DataRecord, 'id'>) => handleEnhancedSaveRecord(record as DataRecord)}
         record={editingRecord}
         columns={columns}
         title="Edit Record"

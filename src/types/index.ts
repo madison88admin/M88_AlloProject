@@ -16,7 +16,6 @@ export interface Column {
     terms_of_shipment?: 'FOB' | 'LDP';
     lead_pbd?: string;
     support_pbd?: string;
-    // Additional fields from your database schema
     td?: string;
     nyo_planner?: string;
     indo_m88_md?: string;
@@ -35,8 +34,12 @@ export interface Column {
     pt_ujump_local_md?: string;
     hz_u_jump_shipping?: string;
     pt_ujump_shipping?: string;
-    factory?: string;
-    allocation?: string;
+    fa_wuxi?: string;
+    fa_hz?: string;
+    fa_pt?: string;
+    fa_korea?: string;
+    fa_singfore?: string;
+    fa_heads?: string;
     [key: string]: any;
   }
 
