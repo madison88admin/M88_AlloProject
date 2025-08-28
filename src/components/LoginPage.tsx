@@ -230,8 +230,8 @@ const LoginPage = () => {
           </div>
         )}
 
-        {!showSignUp ? (
-          // LOGIN FORM
+        {/* {!showSignUp ? ( */}
+           LOGIN FORM
           <form onSubmit={handleLogin} className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -295,7 +295,7 @@ const LoginPage = () => {
               )}
             </button>
 
-            <div className="text-center mt-4">
+            {/* {/* <div className="text-center mt-4">
               <button
                 type="button"
                 className="text-indigo-600 hover:underline text-sm"
@@ -307,9 +307,9 @@ const LoginPage = () => {
               >
                 Don't have an account? Sign up
               </button>
-            </div>
+            </div> */}
           </form>
-        ) : (
+        {/* ) : (
           // SIGNUP FORM
           <form onSubmit={handleSignUp} className="space-y-4">
             <div>
@@ -441,14 +441,14 @@ const LoginPage = () => {
               </button>
             </div>
           </form>
-        )}
+        )} */}
 
         {/* Demo credentials info */}
-        <div className="mt-6 p-3 bg-slate-50 rounded-lg">
+        {/* <div className="mt-6 p-3 bg-slate-50 rounded-lg">
           <p className="text-xs text-slate-600 text-center">
             Demo: Try creating a new account or contact admin for test credentials
           </p>
-        </div>
+        </div> */}
       </div>
     </div>
   );
