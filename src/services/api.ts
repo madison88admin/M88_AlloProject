@@ -289,26 +289,62 @@ export const createM88Record = async (record: Omit<DataRecord, 'id'>): Promise<D
   }
 };
 
-// Updated delete function that accepts the full record
-export const deleteM88Record = async (record: DataRecord): Promise<void> => {
+// FIXED: Updated delete function to accept just the ID
+export const deleteM88Record = async (id: number): Promise<void> => {
   try {
     await delay(300);
-    console.log('🗑️ Deleting record:', record.all_brand, 'with ID:', record.id);
+    console.log('🗑️ Deleting record with ID:', id);
     
-    // Use all_brand as the identifier since it appears to be unique
+    // First, find the record to get the all_brand for deletion
+    const { data: recordToDelete, error: findError } = await supabase
+      .from(WORKING_TABLE_NAME)
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (findError) {
+      console.error('❌ Error finding record to delete:', findError);
+      throw new Error(`Failed to find record with ID ${id}: ${findError.message}`);
+    }
+
+    if (!recordToDelete) {
+      throw new Error(`No record found with ID: ${id}`);
+    }
+
+    console.log('🗑️ Found record to delete:', recordToDelete.all_brand);
+
+    // Delete using ID if your table supports it, otherwise fall back to all_brand
     const { data, error } = await supabase
       .from(WORKING_TABLE_NAME)
       .delete()
-      .eq('all_brand', record.all_brand)
+      .eq('id', id)
       .select();
 
     if (error) {
       console.error('❌ Delete error:', error);
-      throw new Error(`Failed to delete record: ${error.message}`);
+      // If ID-based deletion fails, try using all_brand as fallback
+      console.log('🔄 Trying deletion with all_brand fallback...');
+      const { data: fallbackData, error: fallbackError } = await supabase
+        .from(WORKING_TABLE_NAME)
+        .delete()
+        .eq('all_brand', recordToDelete.all_brand)
+        .select();
+
+      if (fallbackError) {
+        console.error('❌ Fallback delete error:', fallbackError);
+        throw new Error(`Failed to delete record: ${fallbackError.message}`);
+      }
+
+      if (!fallbackData || fallbackData.length === 0) {
+        throw new Error(`No record found with brand name: ${recordToDelete.all_brand}`);
+      }
+
+      console.log('✅ Record deleted successfully (fallback):', fallbackData);
+      return;
     }
 
     if (!data || data.length === 0) {
-      throw new Error(`No record found with brand name: ${record.all_brand}`);
+      throw new Error(`No record found with ID: ${id}`);
     }
 
     console.log('✅ Record deleted successfully:', data);
