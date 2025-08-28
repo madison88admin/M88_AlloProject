@@ -49,18 +49,79 @@ export const fetchM88Data = async (): Promise<DataRecord[]> => {
     // Discover the correct table name
     const tableName = await discoverTableName();
     
+    // Fetch all columns including custom_fields
     const { data, error } = await supabase
-  .from(tableName)
-  .select('id, all_brand, brand_visible_to_factory, brand_classification, status, terms_of_shipment, lead_pbd, support_pbd, td, nyo_planner, indo_m88_md, m88_qa, mlo_planner, mlo_logistic, mlo_purchasing, mlo_costing, wuxi_moretti, hz_u_jump, pt_u_jump, korea_mel, singfore, heads_up, hz_pt_u_jump_senior_md, pt_ujump_local_md, hz_u_jump_shipping, pt_ujump_shipping, fa_wuxi, fa_hz, fa_pt, fa_korea, fa_singfore, fa_heads, created_at, updated_at')
-  .order('all_brand', { ascending: true });
+      .from(tableName)
+      .select('*') // Select all columns to include custom_fields if it exists
+      .order('all_brand', { ascending: true });
 
-if (error) throw new Error(`Failed to fetch data: ${error.message}`);
-return data || [];
+    if (error) throw new Error(`Failed to fetch data: ${error.message}`);
+    
+    console.log('✅ Fetched data:', data?.length, 'records');
+    
+    // Log sample record to see structure
+    if (data && data.length > 0) {
+      console.log('📋 Sample record structure:', Object.keys(data[0]));
+      if (data[0].custom_fields) {
+        console.log('🎯 Custom fields detected:', data[0].custom_fields);
+      }
+    }
+    
+    return data || [];
 
   } catch (err) {
     console.error('❌ Error in fetchM88Data:', err);
     throw new Error(err instanceof Error ? err.message : 'Failed to fetch data');
   }
+};
+
+// Helper function to prepare update data from a record
+const prepareUpdateData = (record: DataRecord) => {
+  // Extract standard fields (excluding id, created_at, updated_at)
+  const standardFields = {
+    all_brand: record.all_brand,
+    brand_visible_to_factory: record.brand_visible_to_factory,
+    brand_classification: record.brand_classification,
+    status: record.status,
+    terms_of_shipment: record.terms_of_shipment,
+    lead_pbd: record.lead_pbd,
+    support_pbd: record.support_pbd,
+    td: record.td,
+    nyo_planner: record.nyo_planner,
+    indo_m88_md: record.indo_m88_md,
+    m88_qa: record.m88_qa,
+    mlo_planner: record.mlo_planner,
+    mlo_logistic: record.mlo_logistic,
+    mlo_purchasing: record.mlo_purchasing,
+    mlo_costing: record.mlo_costing,
+    wuxi_moretti: record.wuxi_moretti,
+    hz_u_jump: record.hz_u_jump,
+    pt_u_jump: record.pt_u_jump,
+    korea_mel: record.korea_mel,
+    singfore: record.singfore,
+    heads_up: record.heads_up,
+    hz_pt_u_jump_senior_md: record.hz_pt_u_jump_senior_md,
+    pt_ujump_local_md: record.pt_ujump_local_md,
+    hz_u_jump_shipping: record.hz_u_jump_shipping,
+    pt_ujump_shipping: record.pt_ujump_shipping,
+    fa_wuxi: record.fa_wuxi,
+    fa_hz: record.fa_hz,
+    fa_pt: record.fa_pt,
+    fa_korea: record.fa_korea,
+    fa_singfore: record.fa_singfore,
+    fa_heads: record.fa_heads,
+    updated_at: new Date().toISOString()
+  };
+
+  // Include custom_fields if it exists
+  if (record.custom_fields) {
+    return {
+      ...standardFields,
+      custom_fields: record.custom_fields
+    };
+  }
+
+  return standardFields;
 };
 
 export const updateM88Record = async (record: DataRecord): Promise<DataRecord> => {
@@ -94,41 +155,8 @@ export const updateM88Record = async (record: DataRecord): Promise<DataRecord> =
       throw new Error(`No record found with brand name: ${record.all_brand}`);
     }
     
-    // Prepare the update data (exclude id if it's auto-generated)
-    const updateData = {
-      all_brand: record.all_brand,
-      brand_visible_to_factory: record.brand_visible_to_factory,
-      brand_classification: record.brand_classification,
-      status: record.status,
-      terms_of_shipment: record.terms_of_shipment,
-      lead_pbd: record.lead_pbd,
-      support_pbd: record.support_pbd,
-      td: record.td,
-      nyo_planner: record.nyo_planner,
-      indo_m88_md: record.indo_m88_md,
-      m88_qa: record.m88_qa,
-      mlo_planner: record.mlo_planner,
-      mlo_logistic: record.mlo_logistic,
-      mlo_purchasing: record.mlo_purchasing,
-      mlo_costing: record.mlo_costing,
-      wuxi_moretti: record.wuxi_moretti,
-      hz_u_jump: record.hz_u_jump,
-      pt_u_jump: record.pt_u_jump,
-      korea_mel: record.korea_mel,
-      singfore: record.singfore,
-      heads_up: record.heads_up,
-      hz_pt_u_jump_senior_md: record.hz_pt_u_jump_senior_md,
-      pt_ujump_local_md: record.pt_ujump_local_md,
-      hz_u_jump_shipping: record.hz_u_jump_shipping,
-      pt_ujump_shipping: record.pt_ujump_shipping,
-      fa_wuxi: record.fa_wuxi,
-      fa_hz: record.fa_hz,
-      fa_pt: record.fa_pt,
-      fa_korea: record.fa_korea,
-      fa_singfore: record.fa_singfore,
-      fa_heads: record.fa_heads,
-      updated_at: new Date().toISOString()
-    };
+    // Prepare the update data including custom fields
+    const updateData = prepareUpdateData(record);
     
     console.log('💾 API: Update data prepared:', updateData);
     
@@ -177,7 +205,34 @@ export const updateM88RecordById = async (record: DataRecord): Promise<DataRecor
   try {
     await delay(300);
     
-    const updateData = {
+    const updateData = prepareUpdateData(record);
+    
+    const { data, error } = await supabase
+      .from(WORKING_TABLE_NAME)
+      .update(updateData)
+      .eq('id', record.id) // Use ID if available
+      .select()
+      .single();
+
+    if (error) {
+      console.error('❌ Update by ID error:', error);
+      throw new Error(`Failed to update record: ${error.message}`);
+    }
+
+    return data;
+  } catch (err) {
+    console.error('❌ Error in updateM88RecordById:', err);
+    throw new Error(err instanceof Error ? err.message : 'Failed to update record');
+  }
+};
+
+export const createM88Record = async (record: Omit<DataRecord, 'id'>): Promise<DataRecord> => {
+  try {
+    await delay(300);
+    console.log('➕ Creating new record:', record);
+    
+    // Prepare insert data including custom fields
+    const insertData = {
       all_brand: record.all_brand,
       brand_visible_to_factory: record.brand_visible_to_factory,
       brand_classification: record.brand_classification,
@@ -209,70 +264,14 @@ export const updateM88RecordById = async (record: DataRecord): Promise<DataRecor
       fa_korea: record.fa_korea,
       fa_singfore: record.fa_singfore,
       fa_heads: record.fa_heads,
-      updated_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      ...(record.custom_fields && { custom_fields: record.custom_fields }) // Include custom fields if they exist
     };
     
     const { data, error } = await supabase
       .from(WORKING_TABLE_NAME)
-      .update(updateData)
-      .eq('id', record.id) // Use ID if available
-      .select()
-      .single();
-
-    if (error) {
-      console.error('❌ Update by ID error:', error);
-      throw new Error(`Failed to update record: ${error.message}`);
-    }
-
-    return data;
-  } catch (err) {
-    console.error('❌ Error in updateM88RecordById:', err);
-    throw new Error(err instanceof Error ? err.message : 'Failed to update record');
-  }
-};
-
-export const createM88Record = async (record: Omit<DataRecord, 'id'>): Promise<DataRecord> => {
-  try {
-    await delay(300);
-    console.log('➕ Creating new record:', record);
-    
-    const { data, error } = await supabase
-      .from(WORKING_TABLE_NAME)
-      .insert({
-        all_brand: record.all_brand,
-        brand_visible_to_factory: record.brand_visible_to_factory,
-        brand_classification: record.brand_classification,
-        status: record.status,
-        terms_of_shipment: record.terms_of_shipment,
-        lead_pbd: record.lead_pbd,
-        support_pbd: record.support_pbd,
-        td: record.td,
-        nyo_planner: record.nyo_planner,
-        indo_m88_md: record.indo_m88_md,
-        m88_qa: record.m88_qa,
-        mlo_planner: record.mlo_planner,
-        mlo_logistic: record.mlo_logistic,
-        mlo_purchasing: record.mlo_purchasing,
-        mlo_costing: record.mlo_costing,
-        wuxi_moretti: record.wuxi_moretti,
-        hz_u_jump: record.hz_u_jump,
-        pt_u_jump: record.pt_u_jump,
-        korea_mel: record.korea_mel,
-        singfore: record.singfore,
-        heads_up: record.heads_up,
-        hz_pt_u_jump_senior_md: record.hz_pt_u_jump_senior_md,
-        pt_ujump_local_md: record.pt_ujump_local_md,
-        hz_u_jump_shipping: record.hz_u_jump_shipping,
-        pt_ujump_shipping: record.pt_ujump_shipping,
-        fa_wuxi: record.fa_wuxi,
-        fa_hz: record.fa_hz,
-        fa_pt: record.fa_pt,
-        fa_korea: record.fa_korea,
-        fa_singfore: record.fa_singfore,
-        fa_heads: record.fa_heads,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
+      .insert(insertData)
       .select()
       .single();
 
@@ -289,7 +288,6 @@ export const createM88Record = async (record: Omit<DataRecord, 'id'>): Promise<D
   }
 };
 
-// FIXED: Updated delete function to accept just the ID
 export const deleteM88Record = async (id: number): Promise<void> => {
   try {
     await delay(300);

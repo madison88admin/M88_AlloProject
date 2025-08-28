@@ -69,6 +69,23 @@ export const DataTable = ({
     setEditingCell(null);
   };
 
+  // Helper function to get value from row data, including custom fields
+  const getRowValue = (row: DataRecord, columnKey: string) => {
+    if (columnKey.startsWith('custom_')) {
+      // For custom fields, check if it's already flattened or in custom_fields object
+      const flattenedValue = row[columnKey];
+      if (flattenedValue !== undefined) {
+        return flattenedValue;
+      }
+      
+      // Fallback to custom_fields object
+      const customKey = columnKey.replace('custom_', '');
+      return row.custom_fields?.[customKey];
+    }
+    
+    return row[columnKey];
+  };
+
   // Drag and drop handlers
   const handleDragStart = (e: React.DragEvent, columnKey: string) => {
     e.stopPropagation();
@@ -127,47 +144,124 @@ export const DataTable = ({
     const isEditing = editingCell?.rowId === row.id && editingCell?.columnKey === col.key;
     const isEditable = editableColumns.includes(col.key);
     
+    // Get the value using our helper function
+    const cellValue = getRowValue(row, col.key);
+    
     if (isEditing) {
-      return (
-        <input
-          ref={inputRef}
-          type="text"
-          defaultValue={row[col.key] || ''}
-          className="bg-white border border-blue-500 rounded px-2 py-1 text-sm w-full"
-          onBlur={(e) => handleCellUpdate(row.id, col.key, e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              handleCellUpdate(row.id, col.key, (e.target as HTMLInputElement).value);
-            } else if (e.key === 'Escape') {
-              setEditingCell(null);
-            }
-          }}
-          autoFocus
-        />
-      );
+      // Handle different input types for editing
+      if (col.type === 'select' && col.options) {
+        return (
+          <select
+            ref={inputRef as any}
+            defaultValue={cellValue || ''}
+            className="bg-white border border-blue-500 rounded px-2 py-1 text-sm w-full"
+            onBlur={(e) => handleCellUpdate(row.id, col.key, e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleCellUpdate(row.id, col.key, (e.target as HTMLSelectElement).value);
+              } else if (e.key === 'Escape') {
+                setEditingCell(null);
+              }
+            }}
+            autoFocus
+          >
+            <option value="">Select...</option>
+            {col.options.map(option => (
+              <option key={option} value={option}>{option}</option>
+            ))}
+          </select>
+        );
+      } else if (col.type === 'boolean') {
+        return (
+          <select
+            ref={inputRef as any}
+            defaultValue={cellValue ? 'true' : 'false'}
+            className="bg-white border border-blue-500 rounded px-2 py-1 text-sm w-full"
+            onBlur={(e) => handleCellUpdate(row.id, col.key, e.target.value === 'true')}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleCellUpdate(row.id, col.key, (e.target as HTMLSelectElement).value === 'true');
+              } else if (e.key === 'Escape') {
+                setEditingCell(null);
+              }
+            }}
+            autoFocus
+          >
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+          </select>
+        );
+      } else {
+        return (
+          <input
+            ref={inputRef}
+            type="text"
+            defaultValue={cellValue || ''}
+            className="bg-white border border-blue-500 rounded px-2 py-1 text-sm w-full"
+            onBlur={(e) => handleCellUpdate(row.id, col.key, e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleCellUpdate(row.id, col.key, (e.target as HTMLInputElement).value);
+              } else if (e.key === 'Escape') {
+                setEditingCell(null);
+              }
+            }}
+            autoFocus
+          />
+        );
+      }
     }
 
+    // Display logic for different column types
     if (col.key === 'status') {
-      return <StatusBadge status={String(row[col.key] ?? '')} />;
+      return <StatusBadge status={String(cellValue ?? '')} />;
     } else if (col.key === 'brand_classification') {
-      return <ClassificationBadge classification={String(row[col.key] ?? '')} />;
+      return <ClassificationBadge classification={String(cellValue ?? '')} />;
     } else if (col.type === 'boolean') {
       return (
         <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${
-          row[col.key] 
+          cellValue 
             ? 'bg-emerald-100 text-emerald-800' 
             : 'bg-slate-100 text-slate-600'
         }`}>
-          {row[col.key] ? 'Yes' : 'No'}
+          {cellValue ? 'Yes' : 'No'}
         </div>
+      );
+    } else if (col.type === 'select' && Array.isArray(cellValue)) {
+      // Handle array values from custom fields
+      return (
+        <div className="flex flex-wrap gap-1">
+          {cellValue.map((item, index) => (
+            <span 
+              key={index}
+              className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800"
+            >
+              {String(item)}
+            </span>
+          ))}
+        </div>
+      );
+    } else if (typeof cellValue === 'object' && cellValue !== null) {
+      // Handle complex objects - display as JSON string or formatted
+      return (
+        <span 
+          className={`text-slate-600 text-xs ${isEditable ? 'cursor-pointer hover:bg-slate-100' : 'cursor-not-allowed'} px-2 py-1 rounded`}
+          title={JSON.stringify(cellValue, null, 2)}
+          onClick={isEditable ? () => handleCellEdit(row.id, col.key, cellValue) : undefined}
+        >
+          {JSON.stringify(cellValue).length > 50 
+            ? `${JSON.stringify(cellValue).substring(0, 50)}...` 
+            : JSON.stringify(cellValue)
+          }
+        </span>
       );
     } else {
       return (
         <span 
-          className={`${row[col.key] ? 'text-slate-900' : 'text-slate-400'} ${isEditable ? 'cursor-pointer hover:bg-slate-100' : 'cursor-not-allowed'} px-2 py-1 rounded`}
-          onClick={isEditable ? () => handleCellEdit(row.id, col.key, row[col.key]) : undefined}
+          className={`${cellValue ? 'text-slate-900' : 'text-slate-400'} ${isEditable ? 'cursor-pointer hover:bg-slate-100' : 'cursor-not-allowed'} px-2 py-1 rounded`}
+          onClick={isEditable ? () => handleCellEdit(row.id, col.key, cellValue) : undefined}
         >
-          {row[col.key] || '—'}
+          {cellValue || '—'}
         </span>
       );
     }
@@ -268,6 +362,8 @@ export const DataTable = ({
                       dragOverColumn === col.key && draggedColumn !== col.key ? 'bg-blue-100 border-l-4 border-blue-500' : ''
                     } ${
                       onColumnUpdate ? 'select-none' : ''
+                    } ${
+                      col.custom ? 'bg-purple-50' : ''
                     }`}
                   >
                     <div className="flex items-center gap-2">
@@ -302,10 +398,15 @@ export const DataTable = ({
                             className="cursor-pointer hover:text-blue-600 flex items-center gap-1 flex-1"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setEditingColumn(col.key);
+                              if (col.custom) {
+                                setEditingColumn(col.key);
+                              }
                             }}
                           >
                             {col.label}
+                            {col.custom && (
+                              <span className="text-xs bg-purple-100 text-purple-700 px-1 rounded">custom</span>
+                            )}
                             <ArrowUpDown 
                               className={`w-3 h-3 transition-all ${
                                 sortConfig.key === col.key ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
@@ -319,14 +420,14 @@ export const DataTable = ({
                         )}
                       </div>
                       
-                      {onColumnUpdate && (
+                      {onColumnUpdate && col.custom && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             deleteColumn(col.key);
                           }}
                           className="opacity-0 group-hover:opacity-100 p-1 text-red-500 hover:text-red-700 hover:bg-red-100 rounded transition-all"
-                          title="Delete column"
+                          title="Delete custom column"
                         >
                           <Trash2 className="w-3 h-3" />
                         </button>
@@ -343,7 +444,7 @@ export const DataTable = ({
               {data.map((row, index) => (
                 <tr key={row.id} className="odd:bg-slate-50/30 hover:bg-blue-50/30 transition-all duration-150 group border-b border-slate-100 last:border-b-0">
                   {visibleColumns.map(col => (
-                    <td key={col.key} className="py-4 px-6 text-sm whitespace-nowrap min-w-[150px] border-r border-slate-100 last:border-r-0">
+                    <td key={col.key} className={`py-4 px-6 text-sm whitespace-nowrap min-w-[150px] border-r border-slate-100 last:border-r-0 ${col.custom ? 'bg-purple-50/30' : ''}`}>
                       {renderCellContent(row, col)}
                     </td>
                   ))}
