@@ -8,12 +8,42 @@ import { updateFAAssignments, isFactoryColumn } from './utils/faAssignments';
 // Components
 import { LoadingScreen } from './components/LoadingScreen';
 import { ErrorScreen } from './components/ErrorScreen';
-// import { AnalyticsCard } from './components/AnalyticsCard';
 import { SearchBar } from './components/SearchBar';
 import { FiltersPanel } from './components/FiltersPanel';
 import { DataTable } from './components/DataTable';
 import { RecordModal } from './components/RecordModal';
 
+// Custom fields utilities
+const getCustomFieldsFromData = (data: DataRecord[]): Column[] => {
+  const customFieldsSet = new Set<string>();
+  const customFieldsTypes: Record<string, { type: string; options?: string[] }> = {};
+  
+  data.forEach(record => {
+    if (record.custom_fields && typeof record.custom_fields === 'object') {
+      Object.entries(record.custom_fields).forEach(([key, value]) => {
+        customFieldsSet.add(key);
+        
+        // Infer type from value
+        if (typeof value === 'boolean') {
+          customFieldsTypes[key] = { type: 'boolean' };
+        } else if (Array.isArray(value)) {
+          customFieldsTypes[key] = { type: 'select', options: value };
+        } else {
+          customFieldsTypes[key] = { type: 'text' };
+        }
+      });
+    }
+  });
+
+  return Array.from(customFieldsSet).map(key => ({
+    key: `custom_${key}`,
+    label: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+    type: customFieldsTypes[key]?.type as 'text' | 'select' | 'boolean' || 'text',
+    options: customFieldsTypes[key]?.options,
+    width: '150px',
+    custom: true
+  }));
+};
 
 const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factory', onLogout: () => void }) => {
   const {
@@ -25,7 +55,8 @@ const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factor
     handleAddRecord,
     handleRefreshData,
     getFilteredData,
-    getUniqueValues
+    getUniqueValues,
+    data // Add this to get the raw data
   } = useM88Data();
 
   // UI State
@@ -39,6 +70,7 @@ const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factor
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: '', direction: '' });
   const [editingRecord, setEditingRecord] = useState<DataRecord | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [customColumns, setCustomColumns] = useState<Column[]>([]);
 
   // Define base columns for both table types
   const baseCompanyColumns: Column[] = [
@@ -93,7 +125,27 @@ const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factor
   const [companyColumnOrder, setCompanyColumnOrder] = useState<Column[]>(baseCompanyColumns);
   const [factoryColumnOrder, setFactoryColumnOrder] = useState<Column[]>(baseFactoryColumns);
 
-  // Use correct columns based on tableType
+  // Extract custom fields from data and update columns
+  useEffect(() => {
+    if (data && data.length > 0) {
+      const detectedCustomColumns = getCustomFieldsFromData(data);
+      setCustomColumns(detectedCustomColumns);
+      
+      // Update column orders with custom columns
+      setCompanyColumnOrder(prev => {
+        const baseColumns = prev.filter(col => !col.custom);
+        return [...baseColumns, ...detectedCustomColumns];
+      });
+      
+      setFactoryColumnOrder(prev => {
+        const baseColumns = prev.filter(col => !col.custom);
+        const filteredBase = baseColumns.filter(col => !excludeKeys.includes(col.key));
+        return [...filteredBase, ...detectedCustomColumns];
+      });
+    }
+  }, [data]);
+
+  // Use correct columns based on tableType (now includes custom columns)
   const columns = tableType === 'company' ? companyColumnOrder : factoryColumnOrder;
   const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>({});
 
@@ -106,7 +158,21 @@ const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factor
     }
   };
 
-  const filteredData = getFilteredData(searchTerm, filters);
+  // Enhanced data processing to flatten custom fields
+  const processedData = useMemo(() => {
+    return getFilteredData(searchTerm, filters).map(record => {
+      const processedRecord = { ...record };
+      
+      // Flatten custom_fields into the main record object
+      if (record.custom_fields && typeof record.custom_fields === 'object') {
+        Object.entries(record.custom_fields).forEach(([key, value]) => {
+          processedRecord[`custom_${key}`] = value;
+        });
+      }
+      
+      return processedRecord;
+    });
+  }, [getFilteredData, searchTerm, filters]);
 
   // Initialize column visibility when columns change  
   useEffect(() => {
@@ -114,15 +180,12 @@ const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factor
       const newVisibility: ColumnVisibility = {};
       columns.forEach((col, index) => {
         if (prev[col.key] !== undefined) {
-          // Keep existing setting
           newVisibility[col.key] = prev[col.key];
         } else {
-          // Set default based on table type
           if (tableType === 'company') {
-            newVisibility[col.key] = true; // Show all for company
+            newVisibility[col.key] = true;
           } else {
-            // For factory, maybe show only first 10 or all
-            newVisibility[col.key] = true; // or index < 10
+            newVisibility[col.key] = true;
           }
         }
       });
@@ -133,11 +196,11 @@ const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factor
   // Reset column order when table type changes
   useEffect(() => {
     if (tableType === 'company') {
-      setCompanyColumnOrder(baseCompanyColumns);
+      setCompanyColumnOrder([...baseCompanyColumns, ...customColumns]);
     } else {
-      setFactoryColumnOrder(baseFactoryColumns);
+      setFactoryColumnOrder([...baseFactoryColumns, ...customColumns]);
     }
-  }, [tableType]);
+  }, [tableType, customColumns]);
 
   const handleSort = (key: string) => {
     setSortConfig(prev => ({
@@ -147,17 +210,24 @@ const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factor
   };
 
   const sortedData = useMemo(() => {
-    if (!sortConfig.key) return filteredData;
+    if (!sortConfig.key) return processedData;
     
-    return [...filteredData].sort((a, b) => {
-      const aVal = a[sortConfig.key] ?? '';
-      const bVal = b[sortConfig.key] ?? '';
+    return [...processedData].sort((a, b) => {
+      let aVal = a[sortConfig.key] ?? '';
+      let bVal = b[sortConfig.key] ?? '';
+      
+      // Handle custom fields
+      if (sortConfig.key.startsWith('custom_')) {
+        const customKey = sortConfig.key.replace('custom_', '');
+        aVal = a.custom_fields?.[customKey] ?? '';
+        bVal = b.custom_fields?.[customKey] ?? '';
+      }
       
       if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
       if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
       return 0;
     });
-  }, [filteredData, sortConfig]);
+  }, [processedData, sortConfig]);
 
   const handleDelete = async (id: number) => {
     if (!window.confirm('Are you sure you want to delete this record?')) return;
@@ -169,22 +239,36 @@ const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factor
     }
   };
 
-  // Handle individual cell updates with FA assignment logic
+  // Enhanced cell update handler for custom fields
   const handleCellUpdate = async (rowId: number, columnKey: string, newValue: any) => {
     try {
-      // Find the current record
       const currentRecord = sortedData.find(record => record.id === rowId);
       if (!currentRecord) return;
 
-      // Update the specific field
-      const updatedRecord = { ...currentRecord, [columnKey]: newValue };
+      let updatedRecord = { ...currentRecord };
+
+      if (columnKey.startsWith('custom_')) {
+        // Handle custom field updates
+        const customKey = columnKey.replace('custom_', '');
+        const currentCustomFields = updatedRecord.custom_fields || {};
+        
+        updatedRecord = {
+          ...updatedRecord,
+          custom_fields: {
+            ...currentCustomFields,
+            [customKey]: newValue
+          }
+        };
+      } else {
+        // Handle regular field updates
+        updatedRecord[columnKey] = newValue;
+      }
 
       // Apply FA assignments if this is a factory column
       const finalRecord = isFactoryColumn(columnKey) 
         ? updateFAAssignments(updatedRecord)
         : updatedRecord;
 
-      // Save to database using the existing hook
       await handleSaveRecord(finalRecord);
       
     } catch (err) {
@@ -193,32 +277,61 @@ const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factor
     }
   };
 
+  // Add custom column functionality
+  const handleAddCustomColumn = async (columnData: { name: string; type: 'text' | 'select' | 'boolean'; options?: string[] }) => {
+    const customKey = columnData.name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    
+    // Create new column definition
+    const newColumn: Column = {
+      key: `custom_${customKey}`,
+      label: columnData.name,
+      type: columnData.type,
+      options: columnData.options,
+      width: '150px',
+      custom: true
+    };
+
+    // Update column orders
+    if (tableType === 'company') {
+      setCompanyColumnOrder(prev => [...prev, newColumn]);
+    } else {
+      setFactoryColumnOrder(prev => [...prev, newColumn]);
+    }
+
+    // Make new column visible
+    setColumnVisibility(prev => ({
+      ...prev,
+      [`custom_${customKey}`]: true
+    }));
+
+    // Initialize the custom field in existing records (optional)
+    // You might want to batch update all records to include the new field
+    // This depends on your business requirements
+  };
+
   // Enhanced save record handler that applies FA assignments
   const handleEnhancedSaveRecord = async (record: DataRecord) => {
     try {
-      // Apply FA assignment logic before saving
       const recordWithFAUpdates = updateFAAssignments(record);
       return await handleSaveRecord(recordWithFAUpdates);
     } catch (err) {
-      throw err; // Re-throw so the caller can handle it
+      throw err;
     }
   };
 
   // Enhanced add record handler that applies FA assignments  
   const handleEnhancedAddRecord = async (record: Omit<DataRecord, 'id'>) => {
     try {
-      // Apply FA assignment logic before adding
       const recordWithFAUpdates = updateFAAssignments(record as DataRecord);
       return await handleAddRecord(recordWithFAUpdates);
     } catch (err) {
-      throw err; // Re-throw so the caller can handle it
+      throw err;
     }
   };
 
   const handleRefresh = async () => {
     try {
       await handleRefreshData();
-      // Clear filters and search after refresh
       setSearchTerm('');
       setFilters({
         status: '',
@@ -234,14 +347,15 @@ const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factor
   // Add a helper to determine editable columns for factory
   const getEditableColumns = (type: 'company' | 'factory') => {
     const currentColumns = type === 'company' ? companyColumnOrder : factoryColumnOrder;
-    if (type === 'company') return currentColumns.map(col => col.key); // all editable for company
-    // Only allow editing for columns with keys starting with these prefixes
+    if (type === 'company') return currentColumns.map(col => col.key);
+    
     return currentColumns
       .filter(col =>
         col.key.startsWith('hz_pt_') ||
         col.key.startsWith('pt_') ||
         col.key.startsWith('hz_u_') ||
-        col.key.startsWith('pt_u_')
+        col.key.startsWith('pt_u_') ||
+        col.custom === true // Allow editing of all custom fields
       )
       .map(col => col.key);
   };
@@ -298,30 +412,6 @@ const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factor
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
-        {/* Analytics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/*
-          <AnalyticsCard
-            title="Total Records"
-            value={analytics.total}
-            icon={<Database className="w-5 h-5" />}
-            color="blue"
-          />
-          <AnalyticsCard
-            title="Active Brands"
-            value={analytics.active}
-            icon={<TrendingUp className="w-5 h-5" />}
-            color="emerald"
-          />
-          <AnalyticsCard
-            title="Filtered Results"
-            value={analytics.filtered}
-            icon={<Users className="w-5 h-5" />}
-            color="amber"
-          />
-          */}
-        </div>
-
         {/* Search and Filters */}
         <div className="space-y-6">
           <SearchBar
@@ -329,7 +419,7 @@ const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factor
             onSearchChange={setSearchTerm}
             onToggleFilters={() => setShowFilters(!showFilters)}
             showFilters={showFilters}
-            recordCount={filteredData.length}
+            recordCount={processedData.length}
             onRefresh={loadData}
           />
           
@@ -342,6 +432,7 @@ const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factor
               columnVisibility={columnVisibility}
               onColumnVisibilityChange={setColumnVisibility}
               onColumnUpdate={handleColumnUpdate}
+              onAddCustomColumn={handleAddCustomColumn}
               onClose={() => setShowFilters(false)}
             />
           )}
