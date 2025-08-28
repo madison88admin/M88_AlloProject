@@ -1,4 +1,4 @@
-import { ArrowUpDown, Edit2, X, Database, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowUpDown, Edit2, X, Database, Trash2, ChevronLeft, ChevronRight, GripVertical } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import type { DataRecord, Column, SortConfig } from '../types';
 import { StatusBadge } from './StatusBadge';
@@ -10,7 +10,7 @@ interface DataTableProps {
   sortConfig: SortConfig;
   onSort: (key: string) => void;
   onEdit: (row: DataRecord) => void;
-  onDelete: (record: DataRecord) => void; // Updated to accept full record
+  onDelete: (record: DataRecord) => void;
   onColumnUpdate?: (columns: Column[]) => void;
   onCellUpdate?: (rowId: number, columnKey: string, newValue: any) => void;
   editableColumns?: string[];
@@ -29,6 +29,8 @@ export const DataTable = ({
 }: DataTableProps) => {
   const [editingColumn, setEditingColumn] = useState<string | null>(null);
   const [editingCell, setEditingCell] = useState<{rowId: number, columnKey: string} | null>(null);
+  const [draggedColumn, setDraggedColumn] = useState<string | null>(null);
+  const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [showLeftScroll, setShowLeftScroll] = useState(false);
@@ -65,6 +67,60 @@ export const DataTable = ({
       onCellUpdate(rowId, columnKey, newValue);
     }
     setEditingCell(null);
+  };
+
+  // Drag and drop handlers
+  const handleDragStart = (e: React.DragEvent, columnKey: string) => {
+    e.stopPropagation();
+    setDraggedColumn(columnKey);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', columnKey);
+    
+    // Add a slight delay to allow the drag to register properly
+    setTimeout(() => {
+      const dragImage = e.currentTarget.cloneNode(true) as HTMLElement;
+      dragImage.style.transform = 'rotate(-5deg)';
+      dragImage.style.opacity = '0.8';
+      document.body.appendChild(dragImage);
+      e.dataTransfer.setDragImage(dragImage, 0, 0);
+      setTimeout(() => document.body.removeChild(dragImage), 0);
+    }, 0);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedColumn(null);
+    setDragOverColumn(null);
+  };
+
+  const handleDragOver = (e: React.DragEvent, columnKey: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverColumn(columnKey);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverColumn(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, targetColumnKey: string) => {
+    e.preventDefault();
+    
+    if (!draggedColumn || !onColumnUpdate || draggedColumn === targetColumnKey) {
+      return;
+    }
+
+    const draggedIndex = columns.findIndex(col => col.key === draggedColumn);
+    const targetIndex = columns.findIndex(col => col.key === targetColumnKey);
+
+    if (draggedIndex === -1 || targetIndex === -1) return;
+
+    const newColumns = [...columns];
+    const [draggedCol] = newColumns.splice(draggedIndex, 1);
+    newColumns.splice(targetIndex, 0, draggedCol);
+
+    onColumnUpdate(newColumns);
+    setDraggedColumn(null);
+    setDragOverColumn(null);
   };
 
   const renderCellContent = (row: DataRecord, col: Column) => {
@@ -200,46 +256,76 @@ export const DataTable = ({
                 {visibleColumns.map(col => (
                   <th
                     key={col.key}
-                    className="text-left py-4 px-6 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-50 transition-colors duration-150 group whitespace-nowrap min-w-[150px]"
-                    onClick={() => onSort(col.key)}
+                    draggable={onColumnUpdate !== undefined}
+                    onDragStart={(e) => handleDragStart(e, col.key)}
+                    onDragEnd={handleDragEnd}
+                    onDragOver={(e) => handleDragOver(e, col.key)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, col.key)}
+                    className={`text-left py-4 px-6 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-50 transition-all duration-150 group whitespace-nowrap min-w-[150px] relative ${
+                      draggedColumn === col.key ? 'opacity-50 bg-blue-50' : ''
+                    } ${
+                      dragOverColumn === col.key && draggedColumn !== col.key ? 'bg-blue-100 border-l-4 border-blue-500' : ''
+                    } ${
+                      onColumnUpdate ? 'select-none' : ''
+                    }`}
                   >
                     <div className="flex items-center gap-2">
-                      {editingColumn === col.key ? (
-                        <input
-                          ref={inputRef}
-                          type="text"
-                          defaultValue={col.label}
-                          className="bg-white border border-blue-500 rounded px-2 py-1 text-sm w-full"
-                          onBlur={(e) => updateColumnName(col.key, e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              updateColumnName(col.key, (e.target as HTMLInputElement).value);
-                            } else if (e.key === 'Escape') {
-                              setEditingColumn(null);
-                            }
-                          }}
-                        />
-                      ) : (
-                        <span
-                          className="cursor-pointer hover:text-blue-600 flex items-center gap-1"
-                          onClick={() => setEditingColumn(col.key)}
+                      {onColumnUpdate && (
+                        <div 
+                          className="drag-handle opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing p-1 hover:bg-slate-200 rounded"
+                          title="Drag to reorder column"
                         >
-                          {col.label}
-                          <ArrowUpDown 
-                            className={`w-3 h-3 transition-all ${
-                              sortConfig.key === col.key ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                            } ${sortConfig.key === col.key && sortConfig.direction === 'desc' ? 'rotate-180' : ''}`}
+                          <GripVertical className="w-3 h-3 text-slate-400" />
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center gap-1 flex-1" onClick={() => onSort(col.key)}>
+                        {editingColumn === col.key ? (
+                          <input
+                            ref={inputRef}
+                            type="text"
+                            defaultValue={col.label}
+                            className="bg-white border border-blue-500 rounded px-2 py-1 text-sm w-full"
+                            onBlur={(e) => updateColumnName(col.key, e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                updateColumnName(col.key, (e.target as HTMLInputElement).value);
+                              } else if (e.key === 'Escape') {
+                                setEditingColumn(null);
+                              }
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        ) : (
+                          <span
+                            className="cursor-pointer hover:text-blue-600 flex items-center gap-1 flex-1"
                             onClick={(e) => {
                               e.stopPropagation();
-                              onSort(col.key);
+                              setEditingColumn(col.key);
                             }}
-                          />
-                        </span>
-                      )}
+                          >
+                            {col.label}
+                            <ArrowUpDown 
+                              className={`w-3 h-3 transition-all ${
+                                sortConfig.key === col.key ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                              } ${sortConfig.key === col.key && sortConfig.direction === 'desc' ? 'rotate-180' : ''}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onSort(col.key);
+                              }}
+                            />
+                          </span>
+                        )}
+                      </div>
+                      
                       {onColumnUpdate && (
                         <button
-                          onClick={() => deleteColumn(col.key)}
-                          className="opacity-0 group-hover:opacity-100 ml-2 p-1 text-red-500 hover:text-red-700 transition-all"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteColumn(col.key);
+                          }}
+                          className="opacity-0 group-hover:opacity-100 p-1 text-red-500 hover:text-red-700 hover:bg-red-100 rounded transition-all"
                           title="Delete column"
                         >
                           <Trash2 className="w-3 h-3" />

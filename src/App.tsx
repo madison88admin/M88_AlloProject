@@ -40,10 +40,10 @@ const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factor
   const [editingRecord, setEditingRecord] = useState<DataRecord | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
 
-  // Define columns for both table types
-  const companyColumns: Column[] = [
+  // Define base columns for both table types
+  const baseCompanyColumns: Column[] = [
     { key: 'all_brand', label: 'All Brand', type: 'text', required: true, width: '150px' },
-    { key: 'brand_visible_to_factory', label: 'Brand Visible to Factory', type: 'text', width: '150px' },
+    { key: 'brand_visible_to_factory', label: 'Brands', type: 'text', width: '150px' },
     { key: 'brand_classification', label: 'Brand Classification', type: 'select', options: ['Top', 'Growth', 'Emerging', 'Maintain', 'Divest', 'Early Engagement', 'Growth/Divest'], width: '150px' },
     { key: 'status', label: 'Status', type: 'select', options: ['Active', 'Inactive', 'In Development', 'On hold'], width: '150px' },
     { key: 'terms_of_shipment', label: 'Terms', type: 'select', options: ['FOB', 'LDP'], width: '120px' },
@@ -74,7 +74,6 @@ const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factor
     { key: 'fa_singfore', label: 'FA Singfore', type: 'text', width: '120px' },
     { key: 'fa_heads', label: 'FA Heads', type: 'text', width: '120px' },
   ];
-  //const factoryColumns: Column[] = companyColumns.filter(col => col.key !== 'all_brand');
 
   const excludeKeys = [
     'all_brand',
@@ -86,27 +85,59 @@ const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factor
     'fa_heads'
   ];
   
-  const factoryColumns: Column[] = companyColumns.filter(
+  const baseFactoryColumns: Column[] = baseCompanyColumns.filter(
     col => !excludeKeys.includes(col.key)
   );
-  
+
+  // Column order state - this will track the current order of columns
+  const [companyColumnOrder, setCompanyColumnOrder] = useState<Column[]>(baseCompanyColumns);
+  const [factoryColumnOrder, setFactoryColumnOrder] = useState<Column[]>(baseFactoryColumns);
 
   // Use correct columns based on tableType
-  const columns = tableType === 'company' ? companyColumns : factoryColumns;
+  const columns = tableType === 'company' ? companyColumnOrder : factoryColumnOrder;
   const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>({});
+
+  // Handle column reordering
+  const handleColumnUpdate = (newColumns: Column[]) => {
+    if (tableType === 'company') {
+      setCompanyColumnOrder(newColumns);
+    } else {
+      setFactoryColumnOrder(newColumns);
+    }
+  };
 
   const filteredData = getFilteredData(searchTerm, filters);
 
-  // Initialize column visibility when columns change
+  // Initialize column visibility when columns change  
   useEffect(() => {
     setColumnVisibility(prev => {
       const newVisibility: ColumnVisibility = {};
       columns.forEach((col, index) => {
-        newVisibility[col.key] = prev[col.key] !== undefined ? prev[col.key] : index < 8;
+        if (prev[col.key] !== undefined) {
+          // Keep existing setting
+          newVisibility[col.key] = prev[col.key];
+        } else {
+          // Set default based on table type
+          if (tableType === 'company') {
+            newVisibility[col.key] = true; // Show all for company
+          } else {
+            // For factory, maybe show only first 10 or all
+            newVisibility[col.key] = true; // or index < 10
+          }
+        }
       });
       return newVisibility;
     });
-  }, [columns]);
+  }, [columns, tableType]);
+
+  // Reset column order when table type changes
+  useEffect(() => {
+    if (tableType === 'company') {
+      setCompanyColumnOrder(baseCompanyColumns);
+    } else {
+      setFactoryColumnOrder(baseFactoryColumns);
+    }
+  }, [tableType]);
 
   const handleSort = (key: string) => {
     setSortConfig(prev => ({
@@ -202,9 +233,10 @@ const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factor
 
   // Add a helper to determine editable columns for factory
   const getEditableColumns = (type: 'company' | 'factory') => {
-    if (type === 'company') return companyColumns.map(col => col.key); // all editable for company
+    const currentColumns = type === 'company' ? companyColumnOrder : factoryColumnOrder;
+    if (type === 'company') return currentColumns.map(col => col.key); // all editable for company
     // Only allow editing for columns with keys starting with these prefixes
-    return factoryColumns
+    return currentColumns
       .filter(col =>
         col.key.startsWith('hz_pt_') ||
         col.key.startsWith('pt_') ||
@@ -309,6 +341,7 @@ const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factor
               columns={columns}
               columnVisibility={columnVisibility}
               onColumnVisibilityChange={setColumnVisibility}
+              onColumnUpdate={handleColumnUpdate}
               onClose={() => setShowFilters(false)}
             />
           )}
@@ -323,6 +356,7 @@ const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factor
             onSort={handleSort}
             onEdit={setEditingRecord}
             onDelete={(record) => handleDelete(record.id)}
+            onColumnUpdate={handleColumnUpdate}
             onCellUpdate={handleCellUpdate}
             editableColumns={editableColumns}
           />
