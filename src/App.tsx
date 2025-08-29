@@ -45,7 +45,7 @@ const getCustomFieldsFromData = (data: DataRecord[]): Column[] => {
   }));
 };
 
-const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factory', onLogout: () => void }) => {
+const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factory' | 'admin', onLogout: () => void }) => {
   const {
     loading,
     error,
@@ -72,7 +72,7 @@ const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factor
   const [showAddModal, setShowAddModal] = useState(false);
   const [customColumns, setCustomColumns] = useState<Column[]>([]);
 
-  // Define base columns for both table types
+  // Define base columns for all table types
   const baseCompanyColumns: Column[] = [
     { key: 'all_brand', label: 'All Brand', type: 'text', required: true, width: '150px' },
     { key: 'brand_visible_to_factory', label: 'Brands', type: 'text', width: '150px' },
@@ -107,7 +107,8 @@ const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factor
     { key: 'fa_heads', label: 'FA Heads', type: 'text', width: '120px' },
   ];
 
-  const excludeKeys = [
+  // Factory excludes these keys from company columns
+  const factoryExcludeKeys = [
     'all_brand',
     'fa_wuxi',
     'fa_hz',
@@ -118,12 +119,19 @@ const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factor
   ];
   
   const baseFactoryColumns: Column[] = baseCompanyColumns.filter(
-    col => !excludeKeys.includes(col.key)
+    col => !factoryExcludeKeys.includes(col.key)
   );
 
+  // Company includes custom columns but can't add new ones
+  const baseCompanyColumnsWithCustom: Column[] = baseCompanyColumns;
+
+  // Admin gets all columns including custom ones
+  const baseAdminColumns: Column[] = baseCompanyColumns;
+
   // Column order state - this will track the current order of columns
-  const [companyColumnOrder, setCompanyColumnOrder] = useState<Column[]>(baseCompanyColumns);
+  const [companyColumnOrder, setCompanyColumnOrder] = useState<Column[]>(baseCompanyColumnsWithCustom);
   const [factoryColumnOrder, setFactoryColumnOrder] = useState<Column[]>(baseFactoryColumns);
+  const [adminColumnOrder, setAdminColumnOrder] = useState<Column[]>(baseAdminColumns);
 
   // Extract custom fields from data and update columns
   useEffect(() => {
@@ -131,30 +139,46 @@ const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factor
       const detectedCustomColumns = getCustomFieldsFromData(data);
       setCustomColumns(detectedCustomColumns);
       
-      // Update column orders with custom columns
-      setCompanyColumnOrder(prev => {
-        const baseColumns = prev.filter(col => !col.custom);
-        return [...baseColumns, ...detectedCustomColumns];
-      });
+      // Update column orders with custom columns based on table type
+      // Company: base columns + custom columns (can see but not add)
+      setCompanyColumnOrder([...baseCompanyColumnsWithCustom, ...detectedCustomColumns]);
       
-      setFactoryColumnOrder(prev => {
-        const baseColumns = prev.filter(col => !col.custom);
-        const filteredBase = baseColumns.filter(col => !excludeKeys.includes(col.key));
-        return [...filteredBase, ...detectedCustomColumns];
-      });
+      // Factory: base factory columns only (NO custom columns)
+      setFactoryColumnOrder(baseFactoryColumns);
+      
+      // Admin: all base columns + custom columns
+      setAdminColumnOrder([...baseAdminColumns, ...detectedCustomColumns]);
     }
   }, [data]);
 
-  // Use correct columns based on tableType (now includes custom columns)
-  const columns = tableType === 'company' ? companyColumnOrder : factoryColumnOrder;
+  // Use correct columns based on tableType
+  const columns = useMemo(() => {
+    switch (tableType) {
+      case 'company':
+        return companyColumnOrder; // Base columns + custom columns (can see but not add)
+      case 'factory':
+        return factoryColumnOrder; // Factory columns only (NO custom columns)
+      case 'admin':
+        return adminColumnOrder; // All columns + custom columns
+      default:
+        return companyColumnOrder;
+    }
+  }, [tableType, companyColumnOrder, factoryColumnOrder, adminColumnOrder]);
+
   const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>({});
 
   // Handle column reordering
   const handleColumnUpdate = (newColumns: Column[]) => {
-    if (tableType === 'company') {
-      setCompanyColumnOrder(newColumns);
-    } else {
-      setFactoryColumnOrder(newColumns);
+    switch (tableType) {
+      case 'company':
+        setCompanyColumnOrder(newColumns);
+        break;
+      case 'factory':
+        setFactoryColumnOrder(newColumns);
+        break;
+      case 'admin':
+        setAdminColumnOrder(newColumns);
+        break;
     }
   };
 
@@ -182,11 +206,7 @@ const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factor
         if (prev[col.key] !== undefined) {
           newVisibility[col.key] = prev[col.key];
         } else {
-          if (tableType === 'company') {
-            newVisibility[col.key] = true;
-          } else {
-            newVisibility[col.key] = true;
-          }
+          newVisibility[col.key] = true;
         }
       });
       return newVisibility;
@@ -195,10 +215,16 @@ const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factor
 
   // Reset column order when table type changes
   useEffect(() => {
-    if (tableType === 'company') {
-      setCompanyColumnOrder([...baseCompanyColumns, ...customColumns]);
-    } else {
-      setFactoryColumnOrder([...baseFactoryColumns, ...customColumns]);
+    switch (tableType) {
+      case 'company':
+        setCompanyColumnOrder([...baseCompanyColumnsWithCustom, ...customColumns]); // Can see custom columns
+        break;
+      case 'factory':
+        setFactoryColumnOrder(baseFactoryColumns); // No custom columns for factory
+        break;
+      case 'admin':
+        setAdminColumnOrder([...baseAdminColumns, ...customColumns]);
+        break;
     }
   }, [tableType, customColumns]);
 
@@ -277,8 +303,13 @@ const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factor
     }
   };
 
-  // Add custom column functionality
+  // Add custom column functionality - ONLY for admin
   const handleAddCustomColumn = async (columnData: { name: string; type: 'text' | 'select' | 'boolean'; options?: string[] }) => {
+    if (tableType !== 'admin') {
+      alert('Only admin users can add custom columns.');
+      return;
+    }
+
     const customKey = columnData.name.toLowerCase().replace(/[^a-z0-9]/g, '_');
     
     // Create new column definition
@@ -291,22 +322,15 @@ const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factor
       custom: true
     };
 
-    // Update column orders
-    if (tableType === 'company') {
-      setCompanyColumnOrder(prev => [...prev, newColumn]);
-    } else {
-      setFactoryColumnOrder(prev => [...prev, newColumn]);
-    }
+    // Update column orders - only admin gets custom columns
+    setAdminColumnOrder(prev => [...prev, newColumn]);
+    // Company and factory orders stay the same (no custom columns)
 
     // Make new column visible
     setColumnVisibility(prev => ({
       ...prev,
       [`custom_${customKey}`]: true
     }));
-
-    // Initialize the custom field in existing records (optional)
-    // You might want to batch update all records to include the new field
-    // This depends on your business requirements
   };
 
   // Enhanced save record handler that applies FA assignments
@@ -344,22 +368,46 @@ const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factor
     }
   };
 
-  // Add a helper to determine editable columns for factory
-  const getEditableColumns = (type: 'company' | 'factory') => {
-    const currentColumns = type === 'company' ? companyColumnOrder : factoryColumnOrder;
-    if (type === 'company') return currentColumns.map(col => col.key);
+  // Add a helper to determine editable columns based on table type
+  const getEditableColumns = (type: 'company' | 'factory' | 'admin') => {
+    const currentColumns = columns;
     
-    return currentColumns
-      .filter(col =>
-        col.key.startsWith('hz_pt_') ||
-        col.key.startsWith('pt_') ||
-        col.key.startsWith('hz_u_') ||
-        col.key.startsWith('pt_u_') ||
-        col.custom === true // Allow editing of all custom fields
-      )
-      .map(col => col.key);
+    if (type === 'admin') {
+      // Admin can edit all columns
+      return currentColumns.map(col => col.key);
+    } else if (type === 'company') {
+      // Company can edit all their visible columns (including custom columns)
+      return currentColumns.map(col => col.key);
+    } else if (type === 'factory') {
+      // Factory can edit specific columns (NO custom fields)
+      return currentColumns
+        .filter(col =>
+          col.key.startsWith('hz_pt_') ||
+          col.key.startsWith('pt_') ||
+          col.key.startsWith('hz_u_') ||
+          col.key.startsWith('pt_u_')
+          // Removed custom column editing for factory
+        )
+        .map(col => col.key);
+    }
+    
+    return [];
   };
   const editableColumns = getEditableColumns(tableType);
+
+  // Get table type display name
+  const getTableTypeDisplayName = (type: 'company' | 'factory' | 'admin') => {
+    switch (type) {
+      case 'company':
+        return 'Company View';
+      case 'factory':
+        return 'Factory View';
+      case 'admin':
+        return 'Admin View';
+      default:
+        return 'Unknown View';
+    }
+  };
 
   if (loading) return <LoadingScreen />;
   if (error) return <ErrorScreen error={error} onRetry={loadData} />;
@@ -376,7 +424,9 @@ const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factor
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-slate-900">M88 Account Allocation</h1>
-                <p className="text-sm text-slate-600">Enterprise Brand Management System • Connected to Database</p>
+                <p className="text-sm text-slate-600">
+                  {getTableTypeDisplayName(tableType)} • Enterprise Brand Management System • Connected to Database
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -432,7 +482,7 @@ const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factor
               columnVisibility={columnVisibility}
               onColumnVisibilityChange={setColumnVisibility}
               onColumnUpdate={handleColumnUpdate}
-              onAddCustomColumn={handleAddCustomColumn}
+              onAddCustomColumn={tableType === 'admin' ? handleAddCustomColumn : undefined} // Only admin can add columns
               onClose={() => setShowFilters(false)}
             />
           )}
