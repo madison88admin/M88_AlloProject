@@ -230,7 +230,7 @@ const LoginPage = () => {
           <p className="text-xs text-yellow-700 text-center">
             <strong>Demo Accounts:</strong> Contact your administrator for login credentials
           </p>
-        </div> */}
+        </div>
       </div>
     </div>
   );
