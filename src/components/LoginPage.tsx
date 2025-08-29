@@ -128,7 +128,7 @@ const LoginPage = () => {
       <div className="bg-white rounded-2xl shadow-xl p-10 w-full max-w-md">
         <div className="flex items-center justify-center mb-8">
           <Building2 className="w-12 h-12 text-indigo-600 mr-3" />
-          <h1 className="text-3xl font-bold text-slate-900">M88 Allocation</h1>
+          <h1 className="text-2xl font-bold text-slate-900">M88 Account Allocation</h1>
         </div>
 
         {/* LOGIN FORM */}
@@ -225,12 +225,6 @@ const LoginPage = () => {
           </div>
         </div>
 
-        {/* Demo credentials info - you can remove this in production */}
-        <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <p className="text-xs text-yellow-700 text-center">
-            <strong>Demo Accounts:</strong> Contact your administrator for login credentials
-          </p>
-        </div>
       </div>
     </div>
   );
