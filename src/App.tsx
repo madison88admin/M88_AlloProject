@@ -162,6 +162,14 @@ const M88DatabaseUI = ({
     'fa_singfore',
     'fa_heads'
   ];
+  const factoryNonEditableKeys = [
+    'wuxi_moretti',
+    'hz_u_jump',
+    'pt_u_jump',
+    'korea_mel',
+    'singfore',
+    'heads_up'
+  ];
   
   const baseFactoryColumns: Column[] = baseCompanyColumns.filter(
     col => !factoryExcludeKeys.includes(col.key)
@@ -481,13 +489,16 @@ const M88DatabaseUI = ({
     } else if (type === 'factory') {
       // Factory can edit specific columns (NO custom fields)
       return currentColumns
-        .filter(col =>
+      .filter(col =>
+        (
           col.key.startsWith('hz_pt_') ||
           col.key.startsWith('pt_') ||
           col.key.startsWith('hz_u_') ||
           col.key.startsWith('pt_u_')
-        )
-        .map(col => col.key);
+        ) &&
+        !factoryNonEditableKeys.includes(col.key)
+      )
+      .map(col => col.key);
     }
     
     return [];

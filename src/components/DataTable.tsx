@@ -67,15 +67,18 @@ const YesBlankCell = ({
 
   if (!isEditable) {
     return (
-      <span className={`inline-flex items-center justify-center w-full h-8 text-sm font-medium rounded ${
-        normalizedValue === 'Yes' 
-          ? 'text-green-700 bg-green-50 border border-green-200' 
-          : 'text-gray-500'
-      }`}>
+      <span 
+        className={`inline-flex items-center justify-center w-full h-8 text-sm font-medium rounded cursor-not-allowed ${
+          normalizedValue === 'Yes' 
+            ? 'text-green-700 bg-green-50 border border-green-200' 
+            : 'text-gray-500'
+        }`}
+      >
         {normalizedValue || '—'}
       </span>
     );
   }
+  
 
   return (
     <button
@@ -357,10 +360,10 @@ export const DataTable = ({
           return (
             <button
               onClick={() => handleCellUpdate(row.id, col.key, !cellValue)}
-              className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition-all duration-200 ${
+              className={`inline-flex items-center px-2 py-1 rounded-full text-xs cursor-not-allowed ${
                 cellValue 
-                  ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200' 
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  ? 'bg-emerald-100 text-emerald-800' 
+                  : 'bg-slate-100 text-slate-600'
               }`}
             >
               {cellValue ? 'Yes' : 'No'}
@@ -368,13 +371,16 @@ export const DataTable = ({
           );
         }
         return (
-          <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${
-            cellValue 
-              ? 'bg-emerald-100 text-emerald-800' 
-              : 'bg-slate-100 text-slate-600'
-          }`}>
-            {cellValue ? 'Yes' : 'No'}
-          </div>
+          <div 
+  className={`inline-flex items-center px-2 py-1 rounded-full text-xs cursor-not-allowed ${
+    cellValue 
+      ? 'bg-emerald-100 text-emerald-800' 
+      : 'bg-slate-100 text-slate-600'
+  }`}
+>
+  {cellValue ? 'Yes' : 'No'}
+</div>
+
         );
 
       default:
