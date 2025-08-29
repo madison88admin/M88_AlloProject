@@ -128,6 +128,23 @@ export const DataTable = ({
     setEditingCell(null);
   };
 
+  // Helper function to get value from row data, including custom fields
+  const getRowValue = (row: DataRecord, columnKey: string) => {
+    if (columnKey.startsWith('custom_')) {
+      // For custom fields, check if it's already flattened or in custom_fields object
+      const flattenedValue = row[columnKey];
+      if (flattenedValue !== undefined) {
+        return flattenedValue;
+      }
+      
+      // Fallback to custom_fields object
+      const customKey = columnKey.replace('custom_', '');
+      return row.custom_fields?.[customKey];
+    }
+    
+    return row[columnKey];
+  };
+
   // Drag and drop handlers
   const handleDragStart = (e: React.DragEvent, columnKey: string) => {
     e.stopPropagation();
@@ -186,12 +203,132 @@ export const DataTable = ({
     const isEditing = editingCell?.rowId === row.id && editingCell?.columnKey === col.key;
     const isEditable = editableColumns.includes(col.key);
     
-    if (isEditing && col.type !== 'yes_blank') {
+// Helper function to get row value (handles custom fields)
+const getRowValue = (row: any, columnKey: string) => {
+  if (columnKey.startsWith('custom_')) {
+    const customKey = columnKey.replace('custom_', '');
+    return row.custom_fields?.[customKey];
+  }
+  return row[columnKey];
+};
+
+// YesBlankCell component for yes/blank field types
+const YesBlankCell = ({ 
+  value, 
+  onUpdate, 
+  isEditable 
+}: { 
+  value: any; 
+  onUpdate: (newValue: string) => void; 
+  isEditable: boolean; 
+}) => {
+  const normalizedValue = value === 'Yes' || value === 'yes' ? 'Yes' : '';
+  
+  if (!isEditable) {
+    return (
+      <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${
+        normalizedValue === 'Yes'
+          ? 'bg-green-100 text-green-800'
+          : 'bg-slate-100 text-slate-600'
+      }`}>
+        {normalizedValue || '—'}
+      </div>
+    );
+  }
+
+  return (
+    <button
+      onClick={() => onUpdate(normalizedValue === 'Yes' ? '' : 'Yes')}
+      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition-all duration-200 hover:shadow-sm ${
+        normalizedValue === 'Yes'
+          ? 'bg-green-100 text-green-800 hover:bg-green-200'
+          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+      }`}
+    >
+      {normalizedValue || 'Blank'}
+    </button>
+  );
+};
+
+// Main cell rendering logic
+const renderCell = () => {
+  // Get the value using our helper function
+  const cellValue = getRowValue(row, col.key);
+  
+  // Handle editing state for yes_blank fields specially
+  if (isEditing && col.type === 'yes_blank') {
+    return (
+      <select
+        ref={inputRef as any}
+        defaultValue={cellValue === 'Yes' || cellValue === 'yes' ? 'Yes' : ''}
+        className="bg-white border border-blue-500 rounded px-2 py-1 text-sm w-full"
+        onBlur={(e) => handleCellUpdate(row.id, col.key, e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            handleCellUpdate(row.id, col.key, (e.target as HTMLSelectElement).value);
+          } else if (e.key === 'Escape') {
+            setEditingCell(null);
+          }
+        }}
+        autoFocus
+      >
+        <option value="">Blank</option>
+        <option value="Yes">Yes</option>
+      </select>
+    );
+  }
+  
+  // Handle editing state for other field types
+  if (isEditing && col.type !== 'yes_blank') {
+    // Handle different input types for editing
+    if (col.type === 'select' && col.options) {
+      return (
+        <select
+          ref={inputRef as any}
+          defaultValue={cellValue || ''}
+          className="bg-white border border-blue-500 rounded px-2 py-1 text-sm w-full"
+          onBlur={(e) => handleCellUpdate(row.id, col.key, e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              handleCellUpdate(row.id, col.key, (e.target as HTMLSelectElement).value);
+            } else if (e.key === 'Escape') {
+              setEditingCell(null);
+            }
+          }}
+          autoFocus
+        >
+          <option value="">Select...</option>
+          {col.options.map(option => (
+            <option key={option} value={option}>{option}</option>
+          ))}
+        </select>
+      );
+    } else if (col.type === 'boolean') {
+      return (
+        <select
+          ref={inputRef as any}
+          defaultValue={cellValue ? 'true' : 'false'}
+          className="bg-white border border-blue-500 rounded px-2 py-1 text-sm w-full"
+          onBlur={(e) => handleCellUpdate(row.id, col.key, e.target.value === 'true')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              handleCellUpdate(row.id, col.key, (e.target as HTMLSelectElement).value === 'true');
+            } else if (e.key === 'Escape') {
+              setEditingCell(null);
+            }
+          }}
+          autoFocus
+        >
+          <option value="true">Yes</option>
+          <option value="false">No</option>
+        </select>
+      );
+    } else {
       return (
         <input
           ref={inputRef}
           type="text"
-          defaultValue={row[col.key] || ''}
+          defaultValue={cellValue || ''}
           className="bg-white border border-blue-500 rounded px-2 py-1 text-sm w-full"
           onBlur={(e) => handleCellUpdate(row.id, col.key, e.target.value)}
           onKeyDown={(e) => {
@@ -205,80 +342,118 @@ export const DataTable = ({
         />
       );
     }
+  }
 
-    // Handle different column types
-    switch (col.type) {
-      case 'yes_blank':
-        return (
-          <YesBlankCell
-            value={row[col.key]}
-            onUpdate={(newValue) => handleCellUpdate(row.id, col.key, newValue)}
-            isEditable={isEditable}
-          />
-        );
+  // Handle different column types for display
+  switch (col.type) {
+    case 'yes_blank':
+      return (
+        <YesBlankCell
+          value={cellValue}
+          onUpdate={(newValue) => handleCellUpdate(row.id, col.key, newValue)}
+          isEditable={isEditable}
+        />
+      );
 
-      case 'select':
-        if (isEditable && col.options) {
-          return (
-            <select
-              value={row[col.key] || ''}
-              onChange={(e) => handleCellUpdate(row.id, col.key, e.target.value)}
-              className="bg-white border border-slate-300 rounded px-2 py-1 text-sm w-full focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="">Select...</option>
-              {col.options.map(option => (
-                <option key={option} value={option}>{option}</option>
-              ))}
-            </select>
-          );
-        }
-        // Render special badges for certain select fields
-        if (col.key === 'status') {
-          return <StatusBadge status={String(row[col.key] ?? '')} />;
-        } else if (col.key === 'brand_classification') {
-          return <ClassificationBadge classification={String(row[col.key] ?? '')} />;
-        }
+    case 'select':
+      // Handle array values from custom fields
+      if (Array.isArray(cellValue)) {
         return (
-          <span className={`${row[col.key] ? 'text-slate-900' : 'text-slate-400'}`}>
-            {row[col.key] || '—'}
-          </span>
-        );
-
-      case 'boolean':
-        if (isEditable) {
-          return (
-            <button
-              onClick={() => handleCellUpdate(row.id, col.key, !row[col.key])}
-              className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition-all duration-200 ${
-                row[col.key] 
-                  ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200' 
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              {row[col.key] ? 'Yes' : 'No'}
-            </button>
-          );
-        }
-        return (
-          <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${
-            row[col.key] 
-              ? 'bg-emerald-100 text-emerald-800' 
-              : 'bg-slate-100 text-slate-600'
-          }`}>
-            {row[col.key] ? 'Yes' : 'No'}
+          <div className="flex flex-wrap gap-1">
+            {cellValue.map((item, index) => (
+              <span 
+                key={index}
+                className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800"
+              >
+                {String(item)}
+              </span>
+            ))}
           </div>
         );
+      }
+      
+      // Render special badges for certain select fields
+      if (col.key === 'status') {
+        return <StatusBadge status={String(cellValue ?? '')} />;
+      } else if (col.key === 'brand_classification') {
+        return <ClassificationBadge classification={String(cellValue ?? '')} />;
+      }
+      
+      // Handle regular select fields - make them interactive for editable columns
+      if (isEditable && col.options) {
+        return (
+          <select
+            value={cellValue || ''}
+            onChange={(e) => handleCellUpdate(row.id, col.key, e.target.value)}
+            className="bg-white border border-slate-300 rounded px-2 py-1 text-sm w-full focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value="">Select...</option>
+            {col.options.map(option => (
+              <option key={option} value={option}>{option}</option>
+            ))}
+          </select>
+        );
+      }
+      
+      return (
+        <span className={`${cellValue ? 'text-slate-900' : 'text-slate-400'}`}>
+          {cellValue || '—'}
+        </span>
+      );
 
-      default:
-        // Text fields
+    case 'boolean':
+      if (isEditable) {
+        return (
+          <button
+            onClick={() => handleCellUpdate(row.id, col.key, !cellValue)}
+            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition-all duration-200 ${
+              cellValue 
+                ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200' 
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            {cellValue ? 'Yes' : 'No'}
+          </button>
+        );
+      }
+      return (
+        <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${
+          cellValue 
+            ? 'bg-emerald-100 text-emerald-800' 
+            : 'bg-slate-100 text-slate-600'
+        }`}>
+          {cellValue ? 'Yes' : 'No'}
+        </div>
+      );
+
+    default:
+      // Handle complex objects - display as JSON string or formatted
+      if (typeof cellValue === 'object' && cellValue !== null) {
         return (
           <span 
-            className={`${row[col.key] ? 'text-slate-900' : 'text-slate-400'} ${isEditable ? 'cursor-pointer hover:bg-slate-100' : 'cursor-not-allowed'} px-2 py-1 rounded`}
-            onClick={isEditable ? () => handleCellEdit(row.id, col.key, row[col.key]) : undefined}
+            className={`text-slate-600 text-xs ${isEditable ? 'cursor-pointer hover:bg-slate-100' : 'cursor-not-allowed'} px-2 py-1 rounded`}
+            title={JSON.stringify(cellValue, null, 2)}
+            onClick={isEditable ? () => handleCellEdit(row.id, col.key, cellValue) : undefined}
           >
-            {row[col.key] || '—'}
+            {JSON.stringify(cellValue).length > 50 
+              ? `${JSON.stringify(cellValue).substring(0, 50)}...` 
+              : JSON.stringify(cellValue)
+            }
           </span>
         );
+      }
+      
+      // Text fields
+      return (
+        <span 
+          className={`${cellValue ? 'text-slate-900' : 'text-slate-400'} ${isEditable ? 'cursor-pointer hover:bg-slate-100' : 'cursor-not-allowed'} px-2 py-1 rounded`}
+          onClick={isEditable ? () => handleCellEdit(row.id, col.key, cellValue) : undefined}
+        >
+          {cellValue || '—'}
+        </span>
+      );
+  }
+};
     }
   };
 
@@ -377,6 +552,8 @@ export const DataTable = ({
                       dragOverColumn === col.key && draggedColumn !== col.key ? 'bg-blue-100 border-l-4 border-blue-500' : ''
                     } ${
                       onColumnUpdate ? 'select-none' : ''
+                    } ${
+                      col.custom ? 'bg-purple-50' : ''
                     }`}
                   >
                     <div className="flex items-center gap-2">
@@ -411,10 +588,17 @@ export const DataTable = ({
                             className="cursor-pointer hover:text-blue-600 flex items-center gap-1 flex-1"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setEditingColumn(col.key);
+
+                              if (col.custom) {
+                                setEditingColumn(col.key);
+                              }
                             }}
                           >
                             {col.label}
+                            {col.custom && (
+                              <span className="text-xs bg-purple-100 text-purple-700 px-1 rounded">custom</span>
+                            )}
+
                             <ArrowUpDown 
                               className={`w-3 h-3 transition-all ${
                                 sortConfig.key === col.key ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
@@ -428,7 +612,9 @@ export const DataTable = ({
                         )}
                       </div>
                       
-                      {onColumnUpdate && (
+
+                      {onColumnUpdate && col.custom && (
+
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -452,7 +638,7 @@ export const DataTable = ({
               {data.map((row, index) => (
                 <tr key={row.id} className="odd:bg-slate-50/30 hover:bg-blue-50/30 transition-all duration-150 group border-b border-slate-100 last:border-b-0">
                   {visibleColumns.map(col => (
-                    <td key={col.key} className="py-4 px-6 text-sm whitespace-nowrap min-w-[150px] border-r border-slate-100 last:border-r-0">
+                    <td key={col.key} className={`py-4 px-6 text-sm whitespace-nowrap min-w-[150px] border-r border-slate-100 last:border-r-0 ${col.custom ? 'bg-purple-50/30' : ''}`}>
                       {renderCellContent(row, col)}
                     </td>
                   ))}
