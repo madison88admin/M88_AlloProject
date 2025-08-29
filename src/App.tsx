@@ -13,6 +13,43 @@ import { FiltersPanel } from './components/FiltersPanel';
 import { DataTable } from './components/DataTable';
 import { RecordModal } from './components/RecordModal';
 
+// Account interface for user prop
+interface Account {
+  id: string;
+  username: string;
+  password: string;
+  type: 'company' | 'factory' | 'admin';
+  name: string;
+  department?: string | null;
+  facility?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  is_active?: boolean;
+}
+
+// Utility functions for Yes/Blank handling
+const normalizeYesBlankValue = (value: any): string => {
+  if (!value || value === '' || value === null || value === undefined) {
+    return '';
+  }
+  
+  const stringValue = String(value).toLowerCase().trim();
+  if (stringValue === 'yes') {
+    return 'Yes';
+  }
+  
+  return '';
+};
+
+const isValidYesBlankValue = (value: any): boolean => {
+  if (!value || value === '' || value === null || value === undefined) {
+    return true; // Blank is valid
+  }
+  
+  const stringValue = String(value).toLowerCase().trim();
+  return stringValue === 'yes';
+};
+
 // Custom fields utilities
 const getCustomFieldsFromData = (data: DataRecord[]): Column[] => {
   const customFieldsSet = new Set<string>();
@@ -38,14 +75,22 @@ const getCustomFieldsFromData = (data: DataRecord[]): Column[] => {
   return Array.from(customFieldsSet).map(key => ({
     key: `custom_${key}`,
     label: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-    type: customFieldsTypes[key]?.type as 'text' | 'select' | 'boolean' || 'text',
+    type: customFieldsTypes[key]?.type as 'text' | 'select' | 'boolean' | 'yes_blank' || 'text',
     options: customFieldsTypes[key]?.options,
     width: '150px',
     custom: true
   }));
 };
 
-const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factory' | 'admin', onLogout: () => void }) => {
+const M88DatabaseUI = ({ 
+  tableType, 
+  onLogout, 
+  user 
+}: { 
+  tableType: 'company' | 'factory' | 'admin'; 
+  onLogout: () => void; 
+  user?: Account; 
+}) => {
   const {
     loading,
     error,
@@ -89,12 +134,12 @@ const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factor
     { key: 'mlo_logistic', label: 'MLO Logistic', type: 'text', width: '150px' },
     { key: 'mlo_purchasing', label: 'MLO Purchasing', type: 'text', width: '150px' },
     { key: 'mlo_costing', label: 'MLO Costing', type: 'text', width: '120px' },
-    { key: 'wuxi_moretti', label: 'Wuxi Moretti', type: 'text', width: '120px' },
-    { key: 'hz_u_jump', label: 'HZ U-JUMP', type: 'text', width: '120px' },
-    { key: 'pt_u_jump', label: 'PT U-JUMP', type: 'text', width: '120px' },
-    { key: 'korea_mel', label: 'Korea Mel', type: 'text', width: '120px' },
-    { key: 'singfore', label: 'Singfore', type: 'text', width: '120px' },
-    { key: 'heads_up', label: 'Heads Up', type: 'text', width: '120px' },
+    { key: 'wuxi_moretti', label: 'Wuxi Moretti', type: 'yes_blank', width: '120px' },
+    { key: 'hz_u_jump', label: 'HZ U-JUMP', type: 'yes_blank', width: '120px' },
+    { key: 'pt_u_jump', label: 'PT U-JUMP', type: 'yes_blank', width: '120px' },
+    { key: 'korea_mel', label: 'Korea Mel', type: 'yes_blank', width: '120px' },
+    { key: 'singfore', label: 'Singfore', type: 'yes_blank', width: '120px' },
+    { key: 'heads_up', label: 'Heads Up', type: 'yes_blank', width: '120px' },
     { key: 'hz_pt_u_jump_senior_md', label: 'HZ/PT U-JUMP Senior MD', type: 'text', width: '180px' },
     { key: 'pt_ujump_local_md', label: 'PT UJUMP Local MD', type: 'text', width: '150px' },
     { key: 'hz_u_jump_shipping', label: 'HZ U-JUMP Shipping', type: 'text', width: '150px' },
@@ -122,14 +167,11 @@ const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factor
     col => !factoryExcludeKeys.includes(col.key)
   );
 
-  // Company includes custom columns but can't add new ones
-  const baseCompanyColumnsWithCustom: Column[] = baseCompanyColumns;
-
   // Admin gets all columns including custom ones
   const baseAdminColumns: Column[] = baseCompanyColumns;
 
   // Column order state - this will track the current order of columns
-  const [companyColumnOrder, setCompanyColumnOrder] = useState<Column[]>(baseCompanyColumnsWithCustom);
+  const [companyColumnOrder, setCompanyColumnOrder] = useState<Column[]>(baseCompanyColumns);
   const [factoryColumnOrder, setFactoryColumnOrder] = useState<Column[]>(baseFactoryColumns);
   const [adminColumnOrder, setAdminColumnOrder] = useState<Column[]>(baseAdminColumns);
 
@@ -139,23 +181,33 @@ const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factor
       const detectedCustomColumns = getCustomFieldsFromData(data);
       setCustomColumns(detectedCustomColumns);
       
-      // Update column orders with custom columns based on table type
-      // Company: base columns + custom columns (can see but not add)
-      setCompanyColumnOrder([...baseCompanyColumnsWithCustom, ...detectedCustomColumns]);
-      
-      // Factory: base factory columns only (NO custom columns)
-      setFactoryColumnOrder(baseFactoryColumns);
-      
-      // Admin: all base columns + custom columns
-      setAdminColumnOrder([...baseAdminColumns, ...detectedCustomColumns]);
+      // Update column orders with custom columns based on table type and user permissions
+      switch (tableType) {
+        case 'company':
+          // Company can see custom columns but cannot add new ones (unless user is admin type)
+          if (user?.type === 'admin') {
+            setCompanyColumnOrder([...baseCompanyColumns, ...detectedCustomColumns]);
+          } else {
+            setCompanyColumnOrder([...baseCompanyColumns, ...detectedCustomColumns]);
+          }
+          break;
+        case 'factory':
+          // Factory cannot see or add custom columns
+          setFactoryColumnOrder(baseFactoryColumns);
+          break;
+        case 'admin':
+          // Admin can see and add custom columns
+          setAdminColumnOrder([...baseAdminColumns, ...detectedCustomColumns]);
+          break;
+      }
     }
-  }, [data]);
+  }, [data, tableType, user]);
 
-  // Use correct columns based on tableType
+  // Use correct columns based on tableType and user permissions
   const columns = useMemo(() => {
     switch (tableType) {
       case 'company':
-        return companyColumnOrder; // Base columns + custom columns (can see but not add)
+        return companyColumnOrder; // Base columns + custom columns (visibility based on user type)
       case 'factory':
         return factoryColumnOrder; // Factory columns only (NO custom columns)
       case 'admin':
@@ -217,7 +269,7 @@ const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factor
   useEffect(() => {
     switch (tableType) {
       case 'company':
-        setCompanyColumnOrder([...baseCompanyColumnsWithCustom, ...customColumns]); // Can see custom columns
+        setCompanyColumnOrder([...baseCompanyColumns, ...customColumns]);
         break;
       case 'factory':
         setFactoryColumnOrder(baseFactoryColumns); // No custom columns for factory
@@ -249,11 +301,18 @@ const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factor
         bVal = b.custom_fields?.[customKey] ?? '';
       }
       
+      // Normalize yes_blank values for sorting
+      const column = columns.find(col => col.key === sortConfig.key);
+      if (column?.type === 'yes_blank') {
+        aVal = normalizeYesBlankValue(aVal);
+        bVal = normalizeYesBlankValue(bVal);
+      }
+      
       if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
       if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
       return 0;
     });
-  }, [processedData, sortConfig]);
+  }, [processedData, sortConfig, columns]);
 
   const handleDelete = async (id: number) => {
     if (!window.confirm('Are you sure you want to delete this record?')) return;
@@ -265,13 +324,22 @@ const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factor
     }
   };
 
-  // Enhanced cell update handler for custom fields
+  // Enhanced cell update handler for custom fields and yes_blank types
   const handleCellUpdate = async (rowId: number, columnKey: string, newValue: any) => {
     try {
       const currentRecord = sortedData.find(record => record.id === rowId);
       if (!currentRecord) return;
 
       let updatedRecord = { ...currentRecord };
+      
+      // Find the column to check its type
+      const column = columns.find(col => col.key === columnKey);
+      let finalValue = newValue;
+      
+      // Normalize yes_blank values
+      if (column?.type === 'yes_blank') {
+        finalValue = normalizeYesBlankValue(newValue);
+      }
 
       if (columnKey.startsWith('custom_')) {
         // Handle custom field updates
@@ -282,12 +350,12 @@ const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factor
           ...updatedRecord,
           custom_fields: {
             ...currentCustomFields,
-            [customKey]: newValue
+            [customKey]: finalValue
           }
         };
       } else {
         // Handle regular field updates
-        updatedRecord[columnKey] = newValue;
+        updatedRecord[columnKey] = finalValue;
       }
 
       // Apply FA assignments if this is a factory column
@@ -303,9 +371,15 @@ const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factor
     }
   };
 
-  // Add custom column functionality - ONLY for admin
-  const handleAddCustomColumn = async (columnData: { name: string; type: 'text' | 'select' | 'boolean'; options?: string[] }) => {
-    if (tableType !== 'admin') {
+  // Add custom column functionality - permissions based on table type and user
+  const handleAddCustomColumn = async (columnData: { name: string; type: 'text' | 'select' | 'boolean' | 'yes_blank'; options?: string[] }) => {
+    // Check permissions
+    if (tableType === 'factory') {
+      alert('Factory users cannot add custom columns.');
+      return;
+    }
+    
+    if (tableType === 'company' && user?.type !== 'admin') {
       alert('Only admin users can add custom columns.');
       return;
     }
@@ -322,9 +396,14 @@ const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factor
       custom: true
     };
 
-    // Update column orders - only admin gets custom columns
-    setAdminColumnOrder(prev => [...prev, newColumn]);
-    // Company and factory orders stay the same (no custom columns)
+    // Update column orders based on permissions
+    if (tableType === 'admin' || (tableType === 'company' && user?.type === 'admin')) {
+      if (tableType === 'admin') {
+        setAdminColumnOrder(prev => [...prev, newColumn]);
+      } else {
+        setCompanyColumnOrder(prev => [...prev, newColumn]);
+      }
+    }
 
     // Make new column visible
     setColumnVisibility(prev => ({
@@ -333,20 +412,36 @@ const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factor
     }));
   };
 
-  // Enhanced save record handler that applies FA assignments
+  // Enhanced save record handler that applies FA assignments and normalizes yes_blank values
   const handleEnhancedSaveRecord = async (record: DataRecord) => {
     try {
-      const recordWithFAUpdates = updateFAAssignments(record);
+      // Normalize yes_blank values in the record
+      const normalizedRecord = { ...record };
+      columns.forEach(column => {
+        if (column.type === 'yes_blank' && normalizedRecord[column.key] !== undefined) {
+          normalizedRecord[column.key] = normalizeYesBlankValue(normalizedRecord[column.key]);
+        }
+      });
+
+      const recordWithFAUpdates = updateFAAssignments(normalizedRecord);
       return await handleSaveRecord(recordWithFAUpdates);
     } catch (err) {
       throw err;
     }
   };
 
-  // Enhanced add record handler that applies FA assignments  
+  // Enhanced add record handler that applies FA assignments and normalizes yes_blank values 
   const handleEnhancedAddRecord = async (record: Omit<DataRecord, 'id'>) => {
     try {
-      const recordWithFAUpdates = updateFAAssignments(record as DataRecord);
+      // Normalize yes_blank values in the record
+      const normalizedRecord = { ...record } as DataRecord;
+      columns.forEach(column => {
+        if (column.type === 'yes_blank' && normalizedRecord[column.key] !== undefined) {
+          normalizedRecord[column.key] = normalizeYesBlankValue(normalizedRecord[column.key]);
+        }
+      });
+
+      const recordWithFAUpdates = updateFAAssignments(normalizedRecord);
       return await handleAddRecord(recordWithFAUpdates);
     } catch (err) {
       throw err;
@@ -368,7 +463,7 @@ const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factor
     }
   };
 
-  // Add a helper to determine editable columns based on table type
+  // Add a helper to determine editable columns based on table type and user permissions
   const getEditableColumns = (type: 'company' | 'factory' | 'admin') => {
     const currentColumns = columns;
     
@@ -376,8 +471,13 @@ const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factor
       // Admin can edit all columns
       return currentColumns.map(col => col.key);
     } else if (type === 'company') {
-      // Company can edit all their visible columns (including custom columns)
-      return currentColumns.map(col => col.key);
+      // Company can edit all their visible columns (including custom columns if user is admin)
+      if (user?.type === 'admin') {
+        return currentColumns.map(col => col.key);
+      } else {
+        // Regular company users can edit most columns but not custom fields they didn't create
+        return currentColumns.filter(col => !col.custom).map(col => col.key);
+      }
     } else if (type === 'factory') {
       // Factory can edit specific columns (NO custom fields)
       return currentColumns
@@ -386,7 +486,6 @@ const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factor
           col.key.startsWith('pt_') ||
           col.key.startsWith('hz_u_') ||
           col.key.startsWith('pt_u_')
-          // Removed custom column editing for factory
         )
         .map(col => col.key);
     }
@@ -395,18 +494,27 @@ const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factor
   };
   const editableColumns = getEditableColumns(tableType);
 
-  // Get table type display name
+  // Get table type display name with user context
   const getTableTypeDisplayName = (type: 'company' | 'factory' | 'admin') => {
+    const userInfo = user ? ` (${user.name})` : '';
     switch (type) {
       case 'company':
-        return 'Company View';
+        return `Company View${userInfo}`;
       case 'factory':
-        return 'Factory View';
+        return `Factory View${userInfo}`;
       case 'admin':
-        return 'Admin View';
+        return `Admin View${userInfo}`;
       default:
-        return 'Unknown View';
+        return `Unknown View${userInfo}`;
     }
+  };
+
+  // Determine if user can add custom columns
+  const canAddCustomColumns = () => {
+    if (tableType === 'factory') return false;
+    if (tableType === 'admin') return true;
+    if (tableType === 'company' && user?.type === 'admin') return true;
+    return false;
   };
 
   if (loading) return <LoadingScreen />;
@@ -482,7 +590,7 @@ const M88DatabaseUI = ({ tableType, onLogout }: { tableType: 'company' | 'factor
               columnVisibility={columnVisibility}
               onColumnVisibilityChange={setColumnVisibility}
               onColumnUpdate={handleColumnUpdate}
-              onAddCustomColumn={tableType === 'admin' ? handleAddCustomColumn : undefined} // Only admin can add columns
+              onAddCustomColumn={canAddCustomColumns() ? handleAddCustomColumn : undefined}
               onClose={() => setShowFilters(false)}
             />
           )}

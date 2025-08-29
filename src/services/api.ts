@@ -293,7 +293,7 @@ export const deleteM88Record = async (id: number): Promise<void> => {
     await delay(300);
     console.log('🗑️ Deleting record with ID:', id);
     
-    // First, find the record to get the all_brand for deletion
+    // First, find the record to get the all_brand for deletion (fallback purpose)
     const { data: recordToDelete, error: findError } = await supabase
       .from(WORKING_TABLE_NAME)
       .select('*')

@@ -207,6 +207,7 @@ const LoginPage = () => {
               </div>
               <span className="text-slate-500">Standard business access</span>
             </div>
+
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 bg-green-500 rounded-full"></div>
