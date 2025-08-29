@@ -309,6 +309,30 @@ export const deleteM88Record = async (id: number): Promise<void> => {
       throw new Error(`No record found with ID: ${id}`);
     }
 
+
+// FIXED: Updated delete function to accept just the ID
+export const deleteM88Record = async (id: number): Promise<void> => {
+  try {
+    await delay(300);
+    console.log('🗑️ Deleting record with ID:', id);
+    
+    // First, find the record to get the all_brand for deletion
+    const { data: recordToDelete, error: findError } = await supabase
+      .from(WORKING_TABLE_NAME)
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (findError) {
+      console.error('❌ Error finding record to delete:', findError);
+      throw new Error(`Failed to find record with ID ${id}: ${findError.message}`);
+    }
+
+    if (!recordToDelete) {
+      throw new Error(`No record found with ID: ${id}`);
+    }
+
+
     console.log('🗑️ Found record to delete:', recordToDelete.all_brand);
 
     // Delete using ID if your table supports it, otherwise fall back to all_brand

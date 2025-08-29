@@ -11,6 +11,14 @@ interface RecordModalProps {
   title: string;
 }
 
+// Utility function to normalize yes_blank values
+const normalizeYesBlankValue = (value: any): string => {
+  if (typeof value === 'string' && value.toLowerCase() === 'yes') {
+    return 'Yes';
+  }
+  return '';
+};
+
 export const RecordModal = ({
   isOpen,
   onClose,
@@ -25,11 +33,24 @@ export const RecordModal = ({
   useEffect(() => {
     if (isOpen) {
       if (record) {
-        setFormData(record);
+        // Normalize yes_blank values when loading existing record
+        const normalizedData = { ...record };
+        columns.forEach(col => {
+          if (col.type === 'yes_blank') {
+            normalizedData[col.key] = normalizeYesBlankValue(record[col.key]);
+          }
+        });
+        setFormData(normalizedData);
       } else {
         const initialData: Record<string, any> = {};
         columns.forEach(col => {
-          initialData[col.key] = col.type === 'boolean' ? false : '';
+          if (col.type === 'boolean') {
+            initialData[col.key] = false;
+          } else if (col.type === 'yes_blank') {
+            initialData[col.key] = '';
+          } else {
+            initialData[col.key] = '';
+          }
         });
         setFormData(initialData);
       }
@@ -41,10 +62,18 @@ export const RecordModal = ({
     setLoading(true);
 
     try {
+      // Normalize yes_blank values before saving
+      const normalizedData = { ...formData };
+      columns.forEach(col => {
+        if (col.type === 'yes_blank') {
+          normalizedData[col.key] = normalizeYesBlankValue(formData[col.key]);
+        }
+      });
+
       if (record) {
-        await onSave({ ...formData, id: record.id } as DataRecord);
+        await onSave({ ...normalizedData, id: record.id } as DataRecord);
       } else {
-        await onSave(formData as Omit<DataRecord, 'id'>);
+        await onSave(normalizedData as Omit<DataRecord, 'id'>);
       }
       onClose();
     } catch (error) {
@@ -101,6 +130,31 @@ export const RecordModal = ({
                       className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-2 focus:ring-blue-500/20"
                     />
                     <span className="ml-2 text-sm text-slate-600">Yes</span>
+                  </div>
+                ) : col.type === 'yes_blank' ? (
+                  <div className="flex items-center gap-4">
+                    <label className="flex items-center cursor-pointer">
+                      <input
+                        type="radio"
+                        name={col.key}
+                        value=""
+                        checked={formData[col.key] === '' || !formData[col.key]}
+                        onChange={(e) => setFormData(prev => ({ ...prev, [col.key]: e.target.value }))}
+                        className="w-4 h-4 text-slate-400 border-slate-300 focus:ring-2 focus:ring-slate-500/20"
+                      />
+                      <span className="ml-2 text-sm text-slate-600">Blank</span>
+                    </label>
+                    <label className="flex items-center cursor-pointer">
+                      <input
+                        type="radio"
+                        name={col.key}
+                        value="Yes"
+                        checked={formData[col.key] === 'Yes'}
+                        onChange={(e) => setFormData(prev => ({ ...prev, [col.key]: e.target.value }))}
+                        className="w-4 h-4 text-green-600 border-slate-300 focus:ring-2 focus:ring-green-500/20"
+                      />
+                      <span className="ml-2 text-sm text-slate-600">Yes</span>
+                    </label>
                   </div>
                 ) : (
                   <input
