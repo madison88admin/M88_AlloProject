@@ -1,10 +1,13 @@
+// Updated types.ts file with yes_blank support
+
 export interface Column {
   key: string;
   label: string;
-  type: 'text' | 'select' | 'boolean';
+  type: 'text' | 'select' | 'boolean' | 'yes_blank'; // Added 'yes_blank' type
   options?: string[];
   required?: boolean;
   width?: string;
+  custom?: boolean;
 }
 
 export interface DataRecord {
@@ -40,9 +43,9 @@ export interface DataRecord {
   fa_korea?: string;
   fa_singfore?: string;
   fa_heads?: string;
+  custom_fields?: Record<string, any>;
   [key: string]: any;
 }
-
 
 export interface Filters {
   status: string;
@@ -56,12 +59,12 @@ export interface SortConfig {
 }
 
 export interface Analytics {
-total: number;
-active: number;
-topTier: number;
-filtered: number;
+  total: number;
+  active: number;
+  topTier: number;
+  filtered: number;
 }
 
 export interface ColumnVisibility {
-[key: string]: boolean;
+  [key: string]: boolean;
 }
