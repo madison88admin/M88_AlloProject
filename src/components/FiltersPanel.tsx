@@ -329,9 +329,11 @@ export const FiltersPanel = ({
                       className="w-full appearance-none bg-white border border-slate-200 rounded-xl px-4 py-3 pr-10 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-400 text-slate-900 transition-all duration-200"
                     >
                       <option value="">All {label}</option>
-                      {getUniqueValues(key).map(value => (
-                        <option key={value} value={value}>{value}</option>
-                      ))}
+                      {getUniqueValues(key)
+                        .filter(v => key !== 'status' || String(v).trim().toLowerCase() !== 'inactive')
+                        .map(value => (
+                          <option key={value} value={value}>{value}</option>
+                        ))}
                     </select>
                     <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4 pointer-events-none" />
                   </div>

@@ -129,7 +129,7 @@ const M88DatabaseUI = ({
     { key: 'td', label: 'TD', type: 'text', width: '120px' },
     { key: 'nyo_planner', label: 'NYO Planner', type: 'text', width: '150px' },
     { key: 'indo_m88_md', label: 'Indo M88 MD', type: 'text', width: '150px' },
-    { key: 'm88_qa', label: 'M88 QA', type: 'text', width: '120px' },
+    { key: 'indo_m88_qa', label: 'Indo M88 QA', type: 'text', width: '120px' },
     { key: 'mlo_planner', label: 'MLO Planner', type: 'text', width: '150px' },
     { key: 'mlo_logistic', label: 'MLO Logistic', type: 'text', width: '150px' },
     { key: 'mlo_purchasing', label: 'MLO Purchasing', type: 'text', width: '150px' },

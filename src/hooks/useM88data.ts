@@ -73,6 +73,12 @@ export const useM88Data = () => {
     return useMemo(() => {
       let filtered = data;
 
+      // Always exclude records with Inactive status
+      filtered = filtered.filter(row => {
+        const statusValue = String(row.status ?? '').trim().toLowerCase();
+        return statusValue !== 'inactive';
+      });
+
       if (searchTerm) {
         filtered = filtered.filter(row =>
           Object.values(row).some(value =>

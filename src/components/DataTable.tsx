@@ -121,6 +121,13 @@ export const DataTable = ({
   // Determine if actions column should be shown
   const showActionsColumn = tableType !== 'factory';
 
+  // Parse a width string like '150px' to a number of pixels (default 150)
+  const parseWidthPx = (width?: string): number => {
+    if (!width) return 150;
+    const match = /([0-9]+)px/.exec(width.trim());
+    return match ? parseInt(match[1], 10) : 150;
+  };
+
   useEffect(() => {
     if (editingColumn && inputRef.current) {
       inputRef.current.focus();
@@ -130,8 +137,19 @@ export const DataTable = ({
   // Use all columns passed from parent (filtered by visibility in App.tsx)
   const visibleColumns = columns;
 
+  // Compute sticky left offsets for the first columns (freeze key brand columns)
+  const stickyLeftCount = tableType === 'factory' ? 1 : 2;
+  const leftOffsets: number[] = [];
+  {
+    let acc = 0;
+    for (let i = 0; i < Math.min(stickyLeftCount, visibleColumns.length); i++) {
+      leftOffsets[i] = acc;
+      acc += parseWidthPx(visibleColumns[i]?.width);
+    }
+  }
+
   // Show all data instead of paginated data
-  const currentData = data;
+  // const currentData = data; // no pagination currently
 
   const updateColumnName = (columnKey: string, newName: string) => {
     if (!onColumnUpdate) return;
@@ -143,7 +161,7 @@ export const DataTable = ({
     setEditingColumn(null);
   };
 
-  const handleCellEdit = (rowId: number, columnKey: string, currentValue: any) => {
+  const handleCellEdit = (rowId: number, columnKey: string) => {
     setEditingCell({ rowId, columnKey });
   };
 
@@ -391,7 +409,7 @@ export const DataTable = ({
             <span 
               className={`text-slate-600 text-xs ${isEditable ? 'cursor-pointer hover:bg-slate-100' : 'cursor-not-allowed'} px-2 py-1 rounded`}
               title={JSON.stringify(cellValue, null, 2)}
-              onClick={isEditable ? () => handleCellEdit(row.id, col.key, cellValue) : undefined}
+              onClick={isEditable ? () => handleCellEdit(row.id, col.key) : undefined}
             >
               {JSON.stringify(cellValue).length > 50 
                 ? `${JSON.stringify(cellValue).substring(0, 50)}...` 
@@ -405,7 +423,7 @@ export const DataTable = ({
         return (
           <span 
             className={`${cellValue ? 'text-slate-900' : 'text-slate-400'} ${isEditable ? 'cursor-pointer hover:bg-slate-100' : 'cursor-not-allowed'} px-2 py-1 rounded`}
-            onClick={isEditable ? () => handleCellEdit(row.id, col.key, cellValue) : undefined}
+            onClick={isEditable ? () => handleCellEdit(row.id, col.key) : undefined}
           >
             {cellValue || '—'}
           </span>
@@ -493,7 +511,7 @@ export const DataTable = ({
           <table className="w-full min-w-max">
             <thead className="sticky top-0 bg-white z-10 shadow-[0_1px_0_0_rgba(0,0,0,0.05)]">
               <tr className="border-b border-slate-200">
-                {visibleColumns.map(col => (
+                {visibleColumns.map((col, colIndex) => (
                   <th
                     key={col.key}
                     draggable={onColumnUpdate !== undefined}
@@ -502,7 +520,7 @@ export const DataTable = ({
                     onDragOver={(e) => handleDragOver(e, col.key)}
                     onDragLeave={handleDragLeave}
                     onDrop={(e) => handleDrop(e, col.key)}
-                    className={`text-left py-4 px-6 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-50 transition-all duration-150 group whitespace-nowrap min-w-[150px] relative ${
+                    className={`text-left py-4 px-6 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-50 transition-all duration-150 group whitespace-nowrap min-w-[150px] ${
                       draggedColumn === col.key ? 'opacity-50 bg-blue-50' : ''
                     } ${
                       dragOverColumn === col.key && draggedColumn !== col.key ? 'bg-blue-100 border-l-4 border-blue-500' : ''
@@ -510,7 +528,10 @@ export const DataTable = ({
                       onColumnUpdate ? 'select-none' : ''
                     } ${
                       col.custom ? 'bg-purple-50' : ''
+                    } ${
+                      colIndex < stickyLeftCount ? 'sticky left-0 z-20 bg-white shadow-[1px_0_0_0_rgba(0,0,0,0.05)]' : ''
                     }`}
+                    style={colIndex < stickyLeftCount ? { left: leftOffsets[colIndex], width: col.width } : { width: col.width }}
                   >
                     <div className="flex items-center gap-2">
                       {onColumnUpdate && (
@@ -590,10 +611,14 @@ export const DataTable = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {data.map((row, index) => (
+              {data.map((row) => (
                 <tr key={row.id} className="odd:bg-slate-50/30 hover:bg-blue-50/30 transition-all duration-150 group border-b border-slate-100 last:border-b-0">
-                  {visibleColumns.map(col => (
-                    <td key={col.key} className={`py-4 px-6 text-sm whitespace-nowrap min-w-[150px] border-r border-slate-100 last:border-r-0 ${col.custom ? 'bg-purple-50/30' : ''}`}>
+                  {visibleColumns.map((col, colIndex) => (
+                    <td
+                      key={col.key}
+                      className={`py-4 px-6 text-sm whitespace-nowrap min-w-[150px] border-r border-slate-100 last:border-r-0 ${col.custom ? 'bg-purple-50/30' : ''} ${colIndex < stickyLeftCount ? 'sticky left-0 z-10 bg-white group-hover:bg-blue-50/30 shadow-[1px_0_0_0_rgba(0,0,0,0.05)]' : ''}`}
+                      style={colIndex < stickyLeftCount ? { left: leftOffsets[colIndex], width: col.width } : { width: col.width }}
+                    >
                       {renderCellContent(row, col)}
                     </td>
                   ))}
