@@ -1,8 +1,9 @@
 import { ArrowUpDown, Edit2, X, Database, Trash2, ChevronLeft, ChevronRight, GripVertical } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import type { DataRecord, Column, SortConfig } from '../types';
-import { StatusBadge } from './StatusBadge';
-import { ClassificationBadge } from './ClassificationBadge';
+// Remove or comment out these imports since we won't use the badges anymore
+// import { StatusBadge } from './StatusBadge';
+// import { ClassificationBadge } from './ClassificationBadge';
 
 interface DataTableProps {
   data: DataRecord[];
@@ -331,12 +332,8 @@ export const DataTable = ({
           );
         }
         
-        // Render special badges for certain select fields
-        if (col.key === 'status') {
-          return <StatusBadge status={String(cellValue ?? '')} />;
-        } else if (col.key === 'brand_classification') {
-          return <ClassificationBadge classification={String(cellValue ?? '')} />;
-        }
+        // REMOVED: Special badge rendering for status and brand_classification
+        // Now all select fields will be treated the same way as dropdown selects
         
         // Handle regular select fields - make them interactive for editable columns
         if (isEditable && col.options) {
@@ -355,7 +352,7 @@ export const DataTable = ({
         }
         
         return (
-          <span className={`${cellValue ? 'text-slate-900' : 'text-slate-400'}`}>
+          <span className={`${cellValue ? 'text-slate-900' : 'text-slate-400'} ${isEditable ? '' : 'cursor-not-allowed'}`}>
             {cellValue || '—'}
           </span>
         );
