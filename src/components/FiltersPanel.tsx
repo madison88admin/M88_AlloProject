@@ -12,6 +12,7 @@ interface FiltersPanelProps {
   onColumnUpdate?: (columns: Column[]) => void;
   onAddCustomColumn?: (columnData: { name: string; type: 'text' | 'select' | 'boolean'; options?: string[] }) => Promise<void>;
   onClose?: () => void;
+  userRole?: string; // Add userRole prop
 }
 
 interface DragState {
@@ -29,7 +30,8 @@ export const FiltersPanel = ({
   onColumnVisibilityChange,
   onColumnUpdate,
   onAddCustomColumn,
-  onClose
+  onClose,
+  userRole // Destructure userRole
 }: FiltersPanelProps) => {
   const [showColumnSettings, setShowColumnSettings] = useState(false);
   const [showAddColumn, setShowAddColumn] = useState(false);
@@ -68,7 +70,7 @@ export const FiltersPanel = ({
   };
 
   const deleteColumn = (columnKey: string) => {
-    if (!onColumnUpdate) return;
+    if (!onColumnUpdate || userRole === 'factory') return; // Prevent factory users from deleting columns
     
     // Prevent deletion of system columns
     if (systemColumns.includes(columnKey)) {
@@ -91,7 +93,7 @@ export const FiltersPanel = ({
   };
 
   const addColumn = async () => {
-    if (!newColumnName.trim()) return;
+    if (!newColumnName.trim() || userRole === 'factory') return; // Prevent factory users from adding columns
     
     setIsAddingColumn(true);
 
@@ -169,6 +171,8 @@ export const FiltersPanel = ({
 
   // Drag and drop handlers
   const handleDragStart = useCallback((e: React.DragEvent, index: number) => {
+    if (userRole === 'factory') return; // Prevent factory users from dragging
+    
     setDragState({
       isDragging: true,
       draggedIndex: index,
@@ -183,7 +187,7 @@ export const FiltersPanel = ({
     if (e.currentTarget instanceof HTMLElement) {
       e.currentTarget.style.opacity = '0.5';
     }
-  }, []);
+  }, [userRole]);
 
   const handleDragEnd = useCallback((e: React.DragEvent) => {
     // Reset visual feedback
@@ -199,6 +203,8 @@ export const FiltersPanel = ({
   }, []);
 
   const handleDragOver = useCallback((e: React.DragEvent, index: number) => {
+    if (userRole === 'factory') return; // Prevent factory users from drag operations
+    
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     
@@ -206,7 +212,7 @@ export const FiltersPanel = ({
       ...prev,
       dragOverIndex: index
     }));
-  }, []);
+  }, [userRole]);
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     // Only reset dragOverIndex if we're leaving the entire item, not just a child element
@@ -219,6 +225,8 @@ export const FiltersPanel = ({
   }, []);
 
   const handleDrop = useCallback((e: React.DragEvent, dropIndex: number) => {
+    if (userRole === 'factory') return; // Prevent factory users from dropping
+    
     e.preventDefault();
     
     const { draggedIndex } = dragState;
@@ -245,12 +253,19 @@ export const FiltersPanel = ({
       draggedIndex: null,
       dragOverIndex: null
     });
-  }, [dragState, columns, onColumnUpdate]);
+  }, [dragState, columns, onColumnUpdate, userRole]);
 
   const getDragClassName = (index: number) => {
     const { isDragging, draggedIndex, dragOverIndex } = dragState;
     
-    let className = "flex items-center gap-2 p-3 rounded-lg border transition-all cursor-move group ";
+    let className = "flex items-center gap-2 p-3 rounded-lg border transition-all group ";
+    
+    // Add cursor based on user role
+    if (userRole !== 'factory' && onColumnUpdate) {
+      className += 'cursor-move ';
+    } else {
+      className += 'cursor-default ';
+    }
     
     if (columnVisibility[columns[index]?.key]) {
       className += 'bg-white border-slate-200 hover:border-blue-300 hover:shadow-sm ';
@@ -258,12 +273,12 @@ export const FiltersPanel = ({
       className += 'bg-slate-50 border-slate-200 hover:border-slate-300 ';
     }
     
-    // Add drag states
-    if (isDragging && draggedIndex === index) {
+    // Add drag states (only for non-factory users)
+    if (userRole !== 'factory' && isDragging && draggedIndex === index) {
       className += 'ring-2 ring-blue-400 shadow-lg ';
     }
     
-    if (isDragging && dragOverIndex === index && draggedIndex !== index) {
+    if (userRole !== 'factory' && isDragging && dragOverIndex === index && draggedIndex !== index) {
       className += 'border-blue-400 bg-blue-50 ';
     }
     
@@ -345,7 +360,8 @@ export const FiltersPanel = ({
                 >
                   Hide All
                 </button>
-                {(onColumnUpdate || onAddCustomColumn) && (
+                {/* Only show Add Column button for non-factory users */}
+                {userRole !== 'factory' && (onColumnUpdate || onAddCustomColumn) && (
                   <button
                     onClick={() => {
                       setShowAddColumn(true);
@@ -368,7 +384,8 @@ export const FiltersPanel = ({
 
             {showColumnSettings && (
               <div className="space-y-3">
-                {onColumnUpdate && (
+                {/* Only show drag instruction for non-factory users */}
+                {userRole !== 'factory' && onColumnUpdate && (
                   <div className="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg border">
                     <div className="flex items-center gap-2">
                       <GripVertical className="w-4 h-4 text-slate-400" />
@@ -381,7 +398,7 @@ export const FiltersPanel = ({
                   {columns.map((col, index) => (
                     <div
                       key={col.key}
-                      draggable={!!onColumnUpdate}
+                      draggable={userRole !== 'factory' && !!onColumnUpdate} // Only allow dragging for non-factory users
                       onDragStart={(e) => handleDragStart(e, index)}
                       onDragEnd={handleDragEnd}
                       onDragOver={(e) => handleDragOver(e, index)}
@@ -395,7 +412,8 @@ export const FiltersPanel = ({
                         msUserSelect: 'none'
                       }}
                     >
-                      {onColumnUpdate && (
+                      {/* Only show drag handle for non-factory users */}
+                      {userRole !== 'factory' && onColumnUpdate && (
                         <GripVertical 
                           className="w-4 h-4 text-slate-400 cursor-grab active:cursor-grabbing flex-shrink-0" 
                           onMouseDown={(e) => e.preventDefault()}
@@ -426,7 +444,8 @@ export const FiltersPanel = ({
                         </div>
                       </div>
                       
-                      {(onColumnUpdate || onAddCustomColumn) && !isSystemColumn(col.key) && (
+                      {/* Only show delete button for non-factory users */}
+                      {userRole !== 'factory' && (onColumnUpdate || onAddCustomColumn) && !isSystemColumn(col.key) && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -461,8 +480,8 @@ export const FiltersPanel = ({
           </div>
         </div>
 
-        {/* Add Column Modal */}
-        {showAddColumn && (onColumnUpdate || onAddCustomColumn) && (
+        {/* Add Column Modal - Only show for non-factory users */}
+        {userRole !== 'factory' && showAddColumn && (onColumnUpdate || onAddCustomColumn) && (
           <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[110]">
             <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md mx-4">
               <div className="flex items-center justify-between mb-4">
@@ -574,7 +593,7 @@ export const FiltersPanel = ({
                 <div className="flex gap-3 pt-4 border-t border-slate-200">
                   <button
                     onClick={addColumn}
-                    disabled={!newColumnName.trim() || isAddingColumn}
+                    disabled={!newColumnName.trim() || isAddingColumn || userRole === 'factory'}
                     className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
                   >
                     <Plus className="w-4 h-4" />

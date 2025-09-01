@@ -14,6 +14,7 @@ interface DataTableProps {
   onColumnUpdate?: (columns: Column[]) => void;
   onCellUpdate?: (rowId: number, columnKey: string, newValue: any) => void;
   editableColumns?: string[];
+  tableType?: 'company' | 'factory' | 'admin';
 }
 
 // Utility functions for Yes/Blank handling
@@ -105,6 +106,7 @@ export const DataTable = ({
   onColumnUpdate,
   onCellUpdate,
   editableColumns = columns.map(col => col.key),
+  tableType,
 }: DataTableProps) => {
   const [editingColumn, setEditingColumn] = useState<string | null>(null);
   const [editingCell, setEditingCell] = useState<{rowId: number, columnKey: string} | null>(null);
@@ -114,6 +116,9 @@ export const DataTable = ({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [showLeftScroll, setShowLeftScroll] = useState(false);
   const [showRightScroll, setShowRightScroll] = useState(true);
+
+  // Determine if actions column should be shown
+  const showActionsColumn = tableType !== 'factory';
 
   useEffect(() => {
     if (editingColumn && inputRef.current) {
@@ -372,15 +377,14 @@ export const DataTable = ({
         }
         return (
           <div 
-  className={`inline-flex items-center px-2 py-1 rounded-full text-xs cursor-not-allowed ${
-    cellValue 
-      ? 'bg-emerald-100 text-emerald-800' 
-      : 'bg-slate-100 text-slate-600'
-  }`}
->
-  {cellValue ? 'Yes' : 'No'}
-</div>
-
+            className={`inline-flex items-center px-2 py-1 rounded-full text-xs cursor-not-allowed ${
+              cellValue 
+                ? 'bg-emerald-100 text-emerald-800' 
+                : 'bg-slate-100 text-slate-600'
+            }`}
+          >
+            {cellValue ? 'Yes' : 'No'}
+          </div>
         );
 
       default:
@@ -580,9 +584,12 @@ export const DataTable = ({
                     </div>
                   </th>
                 ))}
-                <th className="text-right py-4 px-6 text-sm font-semibold text-slate-700 w-32 sticky right-0 bg-white shadow-[-2px_0_0_0_rgba(0,0,0,0.05)]">
-                  Actions
-                </th>
+                {/* Conditionally render Actions column header only if not factory */}
+                {showActionsColumn && (
+                  <th className="text-right py-4 px-6 text-sm font-semibold text-slate-700 w-32 sticky right-0 bg-white shadow-[-2px_0_0_0_rgba(0,0,0,0.05)]">
+                    Actions
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -593,24 +600,27 @@ export const DataTable = ({
                       {renderCellContent(row, col)}
                     </td>
                   ))}
-                  <td className="py-4 px-6 text-right sticky right-0 bg-white shadow-[-2px_0_0_0_rgba(0,0,0,0.05)] group-hover:bg-blue-50/30 border-l border-slate-200">
-                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                      <button
-                        onClick={() => onEdit(row)}
-                        className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-100 rounded-lg transition-all duration-200"
-                        title="Edit"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => onDelete(row)}
-                        className="p-2 text-slate-600 hover:text-red-600 hover:bg-red-100 rounded-lg transition-all duration-200"
-                        title="Delete"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
+                  {/* Conditionally render Actions column cell only if not factory */}
+                  {showActionsColumn && (
+                    <td className="py-4 px-6 text-right sticky right-0 bg-white shadow-[-2px_0_0_0_rgba(0,0,0,0.05)] group-hover:bg-blue-50/30 border-l border-slate-200">
+                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        <button
+                          onClick={() => onEdit(row)}
+                          className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-100 rounded-lg transition-all duration-200"
+                          title="Edit"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => onDelete(row)}
+                          className="p-2 text-slate-600 hover:text-red-600 hover:bg-red-100 rounded-lg transition-all duration-200"
+                          title="Delete"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

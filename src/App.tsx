@@ -162,7 +162,18 @@ const M88DatabaseUI = ({
     'fa_singfore',
     'fa_heads'
   ];
+  const companyNonEditableKeys = [
+    'hz_pt_u_jump_senior_md',
+    'pt_ujump_local_md',
+    'hz_u_jump_shipping',
+    'pt_ujump_shipping'
+  ];
+
   const factoryNonEditableKeys = [
+    'brand_visible_to_factory',
+    'brand_classification',
+    'status',
+    'terms_of_shipment',
     'wuxi_moretti',
     'hz_u_jump',
     'pt_u_jump',
@@ -472,23 +483,26 @@ const M88DatabaseUI = ({
   };
 
   // Add a helper to determine editable columns based on table type and user permissions
-  const getEditableColumns = (type: 'company' | 'factory' | 'admin') => {
-    const currentColumns = columns;
-    
-    if (type === 'admin') {
-      // Admin can edit all columns
+const getEditableColumns = (type: 'company' | 'factory' | 'admin') => {
+  const currentColumns = columns;
+  
+  if (type === 'admin') {
+    // Admin can edit all columns
+    return currentColumns.map(col => col.key);
+  } else if (type === 'company') {
+    // Company can edit all their visible columns (including custom columns if user is admin)
+    if (user?.type === 'admin') {
       return currentColumns.map(col => col.key);
-    } else if (type === 'company') {
-      // Company can edit all their visible columns (including custom columns if user is admin)
-      if (user?.type === 'admin') {
-        return currentColumns.map(col => col.key);
-      } else {
-        // Regular company users can edit most columns but not custom fields they didn't create
-        return currentColumns.filter(col => !col.custom).map(col => col.key);
-      }
-    } else if (type === 'factory') {
-      // Factory can edit specific columns (NO custom fields)
+    } else {
+      // Regular company users can edit most columns but not custom fields they didn't create
+      // and not the columns specified in companyNonEditableKeys
       return currentColumns
+        .filter(col => !col.custom && !companyNonEditableKeys.includes(col.key))
+        .map(col => col.key);
+    }
+  } else if (type === 'factory') {
+    // Factory can edit specific columns (NO custom fields)
+    return currentColumns
       .filter(col =>
         (
           col.key.startsWith('hz_pt_') ||
@@ -499,10 +513,10 @@ const M88DatabaseUI = ({
         !factoryNonEditableKeys.includes(col.key)
       )
       .map(col => col.key);
-    }
-    
-    return [];
-  };
+  }
+  
+  return [];
+};
   const editableColumns = getEditableColumns(tableType);
 
   // Get table type display name with user context
@@ -510,9 +524,9 @@ const M88DatabaseUI = ({
     const userInfo = user ? ` (${user.name})` : '';
     switch (type) {
       case 'company':
-        return `Company View${userInfo}`;
+        return `Company Dashboard${userInfo}`;
       case 'factory':
-        return `Factory View${userInfo}`;
+        return `Factory Dashboard${userInfo}`;
       case 'admin':
         return `Admin View${userInfo}`;
       default:
@@ -564,17 +578,15 @@ const M88DatabaseUI = ({
                 <RefreshCw className="w-4 h-4" />
                 Refresh
               </button>
-              <button className="flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all duration-200">
-                <Download className="w-4 h-4" />
-                Export
-              </button>
-              <button 
-                onClick={() => setShowAddModal(true)}
-                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-2xl hover:from-blue-600 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-200 font-medium"
-              >
-                <Plus className="w-4 h-4" />
-                Add Record
-              </button>
+              {tableType !== 'factory' && (
+                <button 
+                  onClick={() => setShowAddModal(true)}
+                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-2xl hover:from-blue-600 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-200 font-medium"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Record
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -603,6 +615,7 @@ const M88DatabaseUI = ({
               onColumnUpdate={handleColumnUpdate}
               onAddCustomColumn={canAddCustomColumns() ? handleAddCustomColumn : undefined}
               onClose={() => setShowFilters(false)}
+              userRole={user?.type} // Add this line
             />
           )}
         </div>
@@ -619,6 +632,7 @@ const M88DatabaseUI = ({
             onColumnUpdate={handleColumnUpdate}
             onCellUpdate={handleCellUpdate}
             editableColumns={editableColumns}
+            tableType={tableType}
           />
         </div>
       </main>
