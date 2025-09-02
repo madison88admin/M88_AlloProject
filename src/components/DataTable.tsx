@@ -4,6 +4,7 @@ import type { DataRecord, Column, SortConfig } from '../types';
 // Remove or comment out these imports since we won't use the badges anymore
 // import { StatusBadge } from './StatusBadge';
 // import { ClassificationBadge } from './ClassificationBadge';
+import ContactPersonModal from './ContactPersonModal';
 
 interface DataTableProps {
   data: DataRecord[];
@@ -16,7 +17,50 @@ interface DataTableProps {
   onCellUpdate?: (rowId: number, columnKey: string, newValue: any) => void;
   editableColumns?: string[];
   tableType?: 'company' | 'factory' | 'admin';
+  groupLabels?: Record<string, string>; // columnKey -> group label
+  groupColors?: Record<string, {
+    background: string;
+    border: string;
+    text: string;
+    hover: string;
+    headerBg: string;
+    cellBg: string;
+  }>;
 }
+// Define groupColors mapping for column groups
+const groupColors: Record<string, {
+  background: string;
+  border: string;
+  text: string;
+  hover: string;
+  headerBg: string;
+  cellBg: string;
+}> = {
+  company: {
+    background: 'bg-blue-50',
+    border: 'border-blue-200',
+    text: 'text-blue-800',
+    hover: 'hover:bg-blue-100',
+    headerBg: 'bg-blue-100/50',
+    cellBg: 'bg-blue-50/30'
+  },
+  factory: {
+    background: 'bg-green-50',
+    border: 'border-green-200',
+    text: 'text-green-800',
+    hover: 'hover:bg-green-100',
+    headerBg: 'bg-green-100/50',
+    cellBg: 'bg-green-50/30'
+  },
+  admin: {
+    background: 'bg-purple-50',
+    border: 'border-purple-200',
+    text: 'text-purple-800',
+    hover: 'hover:bg-purple-100',
+    headerBg: 'bg-purple-100/50',
+    cellBg: 'bg-purple-50/30'
+  }
+};
 
 // Utility functions for Yes/Blank handling
 const normalizeYesBlankValue = (value: any): string => {
@@ -97,6 +141,11 @@ const YesBlankCell = ({
   );
 };
 
+const contactPersonColumns = [
+  'lead_pbd', 'support_pbd', 'td', 'nyo_planner', 'indo_m88_md', 'm88_qa',
+  'mlo_planner', 'mlo_logistic', 'mlo_purchasing', 'mlo_costing'
+];
+
 export const DataTable = ({
   data,
   columns,
@@ -108,6 +157,8 @@ export const DataTable = ({
   onCellUpdate,
   editableColumns = columns.map(col => col.key),
   tableType,
+  groupLabels = {},
+  groupColors = {}
 }: DataTableProps) => {
   const [editingColumn, setEditingColumn] = useState<string | null>(null);
   const [editingCell, setEditingCell] = useState<{rowId: number, columnKey: string} | null>(null);
@@ -117,9 +168,27 @@ export const DataTable = ({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [showLeftScroll, setShowLeftScroll] = useState(false);
   const [showRightScroll, setShowRightScroll] = useState(true);
+  const [selectedContact, setSelectedContact] = useState<string | null>(null);
+  const [contactDetails, setContactDetails] = useState<{ brand: string; position: string }[]>([]);
 
   // Determine if actions column should be shown
   const showActionsColumn = tableType !== 'factory';
+
+ // Helper function to get group colors for a column
+ const getColumnColors = (columnKey: string) => {
+  const groupName = groupLabels[columnKey];
+  if (!groupName || !groupColors[groupName]) {
+    return {
+      background: 'bg-gray-50',
+      border: 'border-gray-200',
+      text: 'text-gray-800',
+      hover: 'hover:bg-gray-100',
+      headerBg: 'bg-gray-100/50',
+      cellBg: 'bg-gray-50/30'
+    };
+  }
+  return groupColors[groupName];
+};
 
   // Parse a width string like '150px' to a number of pixels (default 150)
   const parseWidthPx = (width?: string): number => {
@@ -170,6 +239,19 @@ export const DataTable = ({
       onCellUpdate(rowId, columnKey, newValue);
     }
     setEditingCell(null);
+  };
+
+  const handleContactClick = (name: string) => {
+    const details: { brand: string; position: string }[] = [];
+    data.forEach(row => {
+      contactPersonColumns.forEach(col => {
+        if (row[col] && String(row[col]).toLowerCase() === name.toLowerCase()) {
+          details.push({ brand: row.all_brand, position: col });
+        }
+      });
+    });
+    setSelectedContact(name);
+    setContactDetails(details);
   };
 
   // Drag and drop handlers
@@ -420,14 +502,103 @@ export const DataTable = ({
         }
         
         // Text fields
-        return (
-          <span 
-            className={`${cellValue ? 'text-slate-900' : 'text-slate-400'} ${isEditable ? 'cursor-pointer hover:bg-slate-100' : 'cursor-not-allowed'} px-2 py-1 rounded`}
-            onClick={isEditable ? () => handleCellEdit(row.id, col.key) : undefined}
-          >
-            {cellValue || '—'}
-          </span>
-        );
+        // Contact person columns: clickable by default, editable when in edit mode
+// In DataTable.tsx, update the contact person rendering logic around line 280-320:
+
+// Contact person columns: clickable by default, editable when in edit mode
+if (contactPersonColumns.includes(col.key)) {
+  if (isEditing) {
+    return (
+      <input
+        ref={inputRef}
+        type="text"
+        defaultValue={cellValue || ''}
+        className="bg-white border border-blue-500 rounded px-2 py-1 text-sm w-full"
+        onBlur={(e) => handleCellUpdate(row.id, col.key, e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            handleCellUpdate(row.id, col.key, (e.target as HTMLInputElement).value);
+          } else if (e.key === 'Escape') {
+            setEditingCell(null);
+          }
+        }}
+        autoFocus
+      />
+    );
+  }
+
+  // For factory users, contact person columns should NOT be clickable
+  if (tableType === 'factory') {
+    return (
+      <span className="text-slate-900 px-2 py-1 rounded">
+        {cellValue || '—'}
+      </span>
+    );
+  }
+
+  // For non-factory users, contact person columns remain clickable
+  return (
+    <button
+      className="text-blue-700 underline hover:text-blue-900 font-medium"
+      onClick={() => handleContactClick(cellValue)}
+      type="button"
+    >
+      {cellValue || '—'}
+    </button>
+  );
+}
+
+// Non-contact columns: editable if text and in editable columns
+if (isEditable && (col.type === 'text' || !col.type)) {
+  if (isEditing) {
+    return (
+      <input
+        ref={inputRef}
+        type="text"
+        defaultValue={cellValue || ''}
+        className="bg-white border border-blue-500 rounded px-2 py-1 text-sm w-full"
+        onBlur={(e) => handleCellUpdate(row.id, col.key, e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            handleCellUpdate(row.id, col.key, (e.target as HTMLInputElement).value);
+          } else if (e.key === 'Escape') {
+            setEditingCell(null);
+          }
+        }}
+        autoFocus
+      />
+    );
+  }
+
+  // For factory users: factory assignment columns should be clickable to edit
+  const factoryEditableColumns = ['hz_pt_u_jump_senior_md', 'pt_ujump_local_md', 'hz_u_jump_shipping', 'pt_ujump_shipping'];
+  if (tableType === 'factory' && factoryEditableColumns.includes(col.key)) {
+    return (
+      <span 
+        className="text-slate-900 px-2 py-1 rounded cursor-pointer hover:bg-slate-100"
+        onClick={() => handleCellEdit(row.id, col.key)}
+      >
+        {cellValue || '—'}
+      </span>
+    );
+  }
+
+  // For non-factory users or regular editable text columns
+  if (tableType !== 'factory') {
+    return (
+      <span 
+        className="text-slate-900 px-2 py-1 rounded cursor-pointer hover:bg-slate-100"
+        onClick={() => handleCellEdit(row.id, col.key)}
+      >
+        {cellValue || '—'}
+      </span>
+    );
+  }
+}
+
+// Default: just render value
+return <span className="text-slate-900 px-2 py-1 rounded">{cellValue || '—'}</span>;
+
     }
   };
 
@@ -510,6 +681,41 @@ export const DataTable = ({
         >
           <table className="w-full min-w-max">
             <thead className="sticky top-0 bg-white z-10 shadow-[0_1px_0_0_rgba(0,0,0,0.05)]">
+              {/* Group header row */}
+              {Object.keys(groupLabels).length > 0 && (
+                <tr className="border-b border-slate-200 bg-slate-50/60">
+                  {(() => {
+                    const cells: JSX.Element[] = [];
+                    let i = 0;
+                    while (i < visibleColumns.length) {
+                      const col = visibleColumns[i];
+                      const label = groupLabels[col.key] || '';
+                      const colors = getColumnColors(col.key);
+                      
+                      let span = 1;
+                      let j = i + 1;
+                      while (
+                        j < visibleColumns.length &&
+                        (groupLabels[visibleColumns[j].key] || '') === label
+                      ) {
+                        span++;
+                        j++;
+                      }
+                      cells.push(
+                        <th key={`grp-${i}`} 
+                            colSpan={span} 
+                            className="text-left py-2 px-6 text-xs font-semibold text-slate-600 whitespace-nowrap">
+                          {label}
+                        </th>
+                      );
+                      i = j;
+                    }
+                    return cells;
+                  })()}
+                  {/* Actions header spacer if actions column shown */}
+                  {showActionsColumn && <th className="w-32" />}
+                </tr>
+              )}
               <tr className="border-b border-slate-200">
                 {visibleColumns.map((col, colIndex) => (
                   <th
@@ -616,7 +822,7 @@ export const DataTable = ({
                   {visibleColumns.map((col, colIndex) => (
                     <td
                       key={col.key}
-                      className={`py-4 px-6 text-sm whitespace-nowrap min-w-[150px] border-r border-slate-100 last:border-r-0 ${col.custom ? 'bg-purple-50/30' : ''} ${colIndex < stickyLeftCount ? 'sticky left-0 z-10 bg-white group-hover:bg-blue-50/30 shadow-[1px_0_0_0_rgba(0,0,0,0.05)]' : ''}`}
+                      className={`py-4 px-6 text-sm whitespace-nowrap min-w-[150px] border-r border-slate-100 last:border-r-0 ${col.custom ? 'bg-purple-50/30' : ''} ${colIndex < stickyLeftCount ? 'sticky left-0 z-20 bg-white shadow-[1px_0_0_0_rgba(0,0,0,0.05)]' : 'group-hover:bg-blue-50/30'}`}
                       style={colIndex < stickyLeftCount ? { left: leftOffsets[colIndex], width: col.width } : { width: col.width }}
                     >
                       {renderCellContent(row, col)}
@@ -649,6 +855,13 @@ export const DataTable = ({
           </table>
         </div>
       </div>
+      {selectedContact && (
+        <ContactPersonModal
+          name={selectedContact}
+          details={contactDetails}
+          onClose={() => setSelectedContact(null)}
+        />
+      )}
     </div>
   );
 };

@@ -1,5 +1,5 @@
 import { ChevronDown, Eye, EyeOff, Settings, Plus, Trash2, X, AlertTriangle, GripVertical } from 'lucide-react';
-import { useState, useRef, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import type { Filters, Column, ColumnVisibility } from '../types';
 
 interface FiltersPanelProps {
@@ -13,6 +13,11 @@ interface FiltersPanelProps {
   onAddCustomColumn?: (columnData: { name: string; type: 'text' | 'select' | 'boolean'; options?: string[] }) => Promise<void>;
   onClose?: () => void;
   userRole?: string; // Add userRole prop
+  onSetQuickView?: (view: 'company_essentials' | 'factory_essentials' | 'all' | 'custom') => void;
+  quickView?: 'company_essentials' | 'factory_essentials' | 'all' | 'custom';
+  groupLabels?: Record<string, string>;
+  collapsedGroups?: Record<string, boolean>;
+  onToggleGroup?: (groupName: string) => void;
 }
 
 interface DragState {
@@ -31,7 +36,12 @@ export const FiltersPanel = ({
   onColumnUpdate,
   onAddCustomColumn,
   onClose,
-  userRole // Destructure userRole
+  userRole, // Destructure userRole
+  onSetQuickView,
+  quickView,
+  groupLabels,
+  collapsedGroups,
+  onToggleGroup
 }: FiltersPanelProps) => {
   const [showColumnSettings, setShowColumnSettings] = useState(false);
   const [showAddColumn, setShowAddColumn] = useState(false);
@@ -48,8 +58,8 @@ export const FiltersPanel = ({
     dragOverIndex: null
   });
   
-  const dragItemRef = useRef<HTMLDivElement>(null);
-  const dragOverItemRef = useRef<HTMLDivElement>(null);
+  // const dragItemRef = useRef<HTMLDivElement>(null);
+  // const dragOverItemRef = useRef<HTMLDivElement>(null);
 
   // Core system columns that shouldn't be deleted
   const systemColumns = ['id', 'all_brand', 'brand_visible_to_factory', 'brand_classification', 'status', 'terms_of_shipment'];
@@ -168,6 +178,11 @@ export const FiltersPanel = ({
   const isSystemColumn = (columnKey: string) => {
     return systemColumns.includes(columnKey);
   };
+
+  // Filter columns for factory users to exclude 'Flags' group
+  const visibleColumns = userRole === 'factory' && groupLabels
+    ? columns.filter(col => groupLabels[col.key] !== 'Flags')
+    : columns;
 
   // Drag and drop handlers
   const handleDragStart = useCallback((e: React.DragEvent, index: number) => {
@@ -314,6 +329,7 @@ export const FiltersPanel = ({
                 Clear all
               </button>
             </div>
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {Object.entries({
                 status: 'Status',
@@ -397,7 +413,8 @@ export const FiltersPanel = ({
                 )}
                 
                 <div className="grid grid-cols-1 gap-2 max-h-80 overflow-y-auto border border-slate-200 rounded-lg p-4">
-                  {columns.map((col, index) => (
+
+                  {visibleColumns.map((col, index) => (
                     <div
                       key={col.key}
                       draggable={userRole !== 'factory' && !!onColumnUpdate} // Only allow dragging for non-factory users

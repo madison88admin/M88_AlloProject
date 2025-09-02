@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Plus, Download, Building2, RefreshCw } from 'lucide-react';
+import { Plus, Building2, RefreshCw, X } from 'lucide-react';
 
 import type { Column, SortConfig, Filters, DataRecord, ColumnVisibility } from './types';
 import { useM88Data } from './hooks/useM88data';
@@ -27,6 +27,42 @@ interface Account {
   is_active?: boolean;
 }
 
+// Color scheme for column groups
+const GROUP_COLORS = {
+  'Brand Info': {
+    background: 'bg-blue-50',
+    border: 'border-blue-200',
+    text: 'text-blue-800',
+    hover: 'hover:bg-blue-100',
+    headerBg: 'bg-blue-100/50',
+    cellBg: 'bg-blue-50/30'
+  },
+  'Contact Person': {
+    background: 'bg-green-50',
+    border: 'border-green-200',
+    text: 'text-green-800',
+    hover: 'hover:bg-green-100',
+    headerBg: 'bg-green-100/50',
+    cellBg: 'bg-green-50/30'
+  },
+  'Flags': {
+    background: 'bg-amber-50',
+    border: 'border-amber-200',
+    text: 'text-amber-800',
+    hover: 'hover:bg-amber-100',
+    headerBg: 'bg-amber-100/50',
+    cellBg: 'bg-amber-50/30'
+  },
+  'Factory Assignment': {
+    background: 'bg-purple-50',
+    border: 'border-purple-200',
+    text: 'text-purple-800',
+    hover: 'hover:bg-purple-100',
+    headerBg: 'bg-purple-100/50',
+    cellBg: 'bg-purple-50/30'
+  }
+} as const;
+
 // Utility functions for Yes/Blank handling
 const normalizeYesBlankValue = (value: any): string => {
   if (!value || value === '' || value === null || value === undefined) {
@@ -41,14 +77,14 @@ const normalizeYesBlankValue = (value: any): string => {
   return '';
 };
 
-const isValidYesBlankValue = (value: any): boolean => {
-  if (!value || value === '' || value === null || value === undefined) {
-    return true; // Blank is valid
-  }
-  
-  const stringValue = String(value).toLowerCase().trim();
-  return stringValue === 'yes';
-};
+// const isValidYesBlankValue = (value: any): boolean => {
+//   if (!value || value === '' || value === null || value === undefined) {
+//     return true; // Blank is valid
+//   }
+//   
+//   const stringValue = String(value).toLowerCase().trim();
+//   return stringValue === 'yes';
+// };
 
 // Custom fields utilities
 const getCustomFieldsFromData = (data: DataRecord[]): Column[] => {
@@ -116,6 +152,9 @@ const M88DatabaseUI = ({
   const [editingRecord, setEditingRecord] = useState<DataRecord | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [customColumns, setCustomColumns] = useState<Column[]>([]);
+  const [quickView, setQuickView] = useState<'company_essentials' | 'factory_essentials' | 'all' | 'custom'>('company_essentials');
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+
 
   // Define base columns for all table types
   const baseCompanyColumns: Column[] = [
@@ -129,7 +168,7 @@ const M88DatabaseUI = ({
     { key: 'td', label: 'TD', type: 'text', width: '120px' },
     { key: 'nyo_planner', label: 'NYO Planner', type: 'text', width: '150px' },
     { key: 'indo_m88_md', label: 'Indo M88 MD', type: 'text', width: '150px' },
-    { key: 'indo_m88_qa', label: 'Indo M88 QA', type: 'text', width: '120px' },
+    { key: 'm88_qa', label: 'M88 QA', type: 'text', width: '120px' },
     { key: 'mlo_planner', label: 'MLO Planner', type: 'text', width: '150px' },
     { key: 'mlo_logistic', label: 'MLO Logistic', type: 'text', width: '150px' },
     { key: 'mlo_purchasing', label: 'MLO Purchasing', type: 'text', width: '150px' },
@@ -160,7 +199,13 @@ const M88DatabaseUI = ({
     'fa_pt',
     'fa_korea',
     'fa_singfore',
-    'fa_heads'
+    'fa_heads',
+    'wuxi_moretti',
+    'hz_u_jump',
+    'pt_u_jump',
+    'korea_mel',
+    'singfore',
+    'heads_up'
   ];
   const companyNonEditableKeys = [
     'hz_pt_u_jump_senior_md',
@@ -238,6 +283,60 @@ const M88DatabaseUI = ({
 
   const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>({});
 
+  // Define column groups for clarity
+  const columnGroups: Record<string, string> = useMemo(() => ({
+
+    brand_classification: 'Brand Info',
+    status: 'Brand Info',
+    terms_of_shipment: 'Brand Info',
+    lead_pbd: 'Contact Person',
+    support_pbd: 'Contact Person',
+    td: 'Contact Person',
+    nyo_planner: 'Contact Person',
+    indo_m88_md: 'Contact Person',
+    m88_qa: 'Contact Person',
+    mlo_planner: 'Contact Person',
+    mlo_logistic: 'Contact Person',
+    mlo_purchasing: 'Contact Person',
+    mlo_costing: 'Contact Person',
+    wuxi_moretti: 'Flags',
+    hz_u_jump: 'Flags',
+    pt_u_jump: 'Flags',
+    korea_mel: 'Flags',
+    singfore: 'Flags',
+    heads_up: 'Flags',
+    hz_pt_u_jump_senior_md: 'Factory Assignment',
+    pt_ujump_local_md: 'Factory Assignment',
+    hz_u_jump_shipping: 'Factory Assignment',
+    pt_ujump_shipping: 'Factory Assignment',
+    fa_wuxi: 'Factory Assignment',
+    fa_hz: 'Factory Assignment',
+    fa_pt: 'Factory Assignment',
+    fa_korea: 'Factory Assignment',
+    fa_singfore: 'Factory Assignment',
+    fa_heads: 'Factory Assignment'
+  }), []);
+
+  // Helper function to get group colors
+  const getGroupColors = (groupName: string) => {
+    return GROUP_COLORS[groupName as keyof typeof GROUP_COLORS] || {
+      background: 'bg-gray-50',
+      border: 'border-gray-200',
+      text: 'text-gray-800',
+      hover: 'hover:bg-gray-100',
+      headerBg: 'bg-gray-100/50',
+      cellBg: 'bg-gray-50/30'
+    };
+  };
+
+  useEffect(() => {
+    localStorage.setItem('m88.quickView', quickView);
+  }, [quickView]);
+
+  useEffect(() => {
+    localStorage.setItem('m88.collapsedGroups', JSON.stringify(collapsedGroups));
+  }, [collapsedGroups]);
+
   // Handle column reordering
   const handleColumnUpdate = (newColumns: Column[]) => {
     switch (tableType) {
@@ -273,16 +372,21 @@ const M88DatabaseUI = ({
   useEffect(() => {
     setColumnVisibility(prev => {
       const newVisibility: ColumnVisibility = {};
-      columns.forEach((col, index) => {
-        if (prev[col.key] !== undefined) {
-          newVisibility[col.key] = prev[col.key];
-        } else {
-          newVisibility[col.key] = true;
-        }
+      columns.forEach((col) => {
+        newVisibility[col.key] = true;
+      });
+      // Apply collapsed groups
+      Object.entries(collapsedGroups).forEach(([groupName, isCollapsed]) => {
+        if (!isCollapsed) return;
+        columns.forEach(col => {
+          if (columnGroups[col.key] === groupName) {
+            newVisibility[col.key] = false;
+          }
+        });
       });
       return newVisibility;
     });
-  }, [columns, tableType]);
+  }, [columns, tableType, collapsedGroups, columnGroups]);
 
   // Reset column order when table type changes
   useEffect(() => {
@@ -482,41 +586,31 @@ const M88DatabaseUI = ({
     }
   };
 
-  // Add a helper to determine editable columns based on table type and user permissions
-const getEditableColumns = (type: 'company' | 'factory' | 'admin') => {
-  const currentColumns = columns;
-  
-  if (type === 'admin') {
-    // Admin can edit all columns
-    return currentColumns.map(col => col.key);
-  } else if (type === 'company') {
-    // Company can edit all their visible columns (including custom columns if user is admin)
-    if (user?.type === 'admin') {
-      return currentColumns.map(col => col.key);
-    } else {
-      // Regular company users can edit most columns but not custom fields they didn't create
-      // and not the columns specified in companyNonEditableKeys
-      return currentColumns
-        .filter(col => !col.custom && !companyNonEditableKeys.includes(col.key))
+  const getEditableColumns = (type: 'company' | 'factory' | 'admin') => {
+    if (type === 'admin') {
+      return columns.map(col => col.key);
+    } 
+    
+    if (type === 'company') {
+      if (user?.type === 'admin') {
+        return columns.map(col => col.key);
+      } else {
+        return columns
+          .filter(col => !companyNonEditableKeys.includes(col.key))
+          .map(col => col.key);
+      }
+    } 
+    
+    if (type === 'factory') {
+      // Let factories edit all except explicitly blocked
+      return columns
+        .filter(col => !factoryNonEditableKeys.includes(col.key))
         .map(col => col.key);
     }
-  } else if (type === 'factory') {
-    // Factory can edit specific columns (NO custom fields)
-    return currentColumns
-      .filter(col =>
-        (
-          col.key.startsWith('hz_pt_') ||
-          col.key.startsWith('pt_') ||
-          col.key.startsWith('hz_u_') ||
-          col.key.startsWith('pt_u_')
-        ) &&
-        !factoryNonEditableKeys.includes(col.key)
-      )
-      .map(col => col.key);
-  }
   
-  return [];
-};
+    return [];
+  };
+  
   const editableColumns = getEditableColumns(tableType);
 
   // Get table type display name with user context
@@ -542,6 +636,23 @@ const getEditableColumns = (type: 'company' | 'factory' | 'admin') => {
     return false;
   };
 
+  // Helper to get columns by group
+  const getColumnsByGroup = (groupName: string) => {
+    return columns.filter(col => columnGroups[col.key] === groupName);
+  };
+
+  // Helper to get group summary
+  const getGroupSummary = () => {
+    const groups = Array.from(new Set(Object.values(columnGroups))).filter(Boolean);
+    return groups.map(groupName => ({
+      name: groupName,
+      columns: getColumnsByGroup(groupName),
+      visibleCount: getColumnsByGroup(groupName).filter(col => columnVisibility[col.key]).length,
+      totalCount: getColumnsByGroup(groupName).length,
+      colors: getGroupColors(groupName)
+    }));
+  };
+
   if (loading) return <LoadingScreen />;
   if (error) return <ErrorScreen error={error} onRetry={loadData} />;
 
@@ -563,8 +674,8 @@ const getEditableColumns = (type: 'company' | 'factory' | 'admin') => {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <button
-                onClick={onLogout}
+                <button
+                  onClick={onLogout}
                 className="flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-white hover:bg-red-500 rounded-xl transition-all duration-200 border border-red-200"
                 title="Log out"
               >
@@ -592,6 +703,48 @@ const getEditableColumns = (type: 'company' | 'factory' | 'admin') => {
         </div>
       </header>
 
+      {/* Enhanced Color-Coded Column Groups Panel */}
+      <div className="max-w-7xl mx-auto px-6 -mt-4 mb-4">
+        <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-4">
+          <div className="flex flex-wrap gap-4">
+            {getGroupSummary()
+              .filter(group => !(tableType === 'factory' && group.name === 'Flags'))
+              .map(group => {
+                const isCollapsed = collapsedGroups[group.name];
+                return (
+                  <button
+                    key={group.name}
+                    onClick={() => {
+                      setCollapsedGroups(prev => ({
+                        ...prev,
+                        [group.name]: !prev[group.name]
+                      }));
+                    }}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all duration-200 ${
+                      isCollapsed 
+                        ? `bg-slate-100 text-slate-600 border-slate-300 hover:bg-slate-200` 
+                        : `${group.colors.background} ${group.colors.text} ${group.colors.border} ${group.colors.hover} shadow-sm`
+                    }`}
+                  >
+                    <div className={`w-3 h-3 rounded-full ${
+                      isCollapsed ? 'bg-slate-400' : group.colors.background.replace('bg-', 'bg-').replace('-50', '-400')
+                    }`} />
+                    <span className="text-sm font-semibold">{group.name}</span>
+                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                      isCollapsed ? 'bg-white text-slate-600' : 'bg-white/80'
+                    }`}>
+                      {group.visibleCount}/{group.totalCount}
+                    </span>
+                    <span className="text-xs font-bold opacity-75">
+                      {isCollapsed ? 'Hidden' : 'Visible'}
+                    </span>
+                  </button>
+                );
+              })}
+          </div>
+        </div>
+      </div>
+
       <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
         {/* Search and Filters */}
         <div className="space-y-6">
@@ -616,9 +769,43 @@ const getEditableColumns = (type: 'company' | 'factory' | 'admin') => {
               onAddCustomColumn={canAddCustomColumns() ? handleAddCustomColumn : undefined}
               onClose={() => setShowFilters(false)}
               userRole={user?.type} // Add this line
+              onSetQuickView={setQuickView}
+              quickView={quickView}
+              groupLabels={columnGroups}
+              collapsedGroups={collapsedGroups}
+              onToggleGroup={(groupName) => {
+                setCollapsedGroups(prev => ({
+                  ...prev,
+                  [groupName]: !prev[groupName]
+                }));
+              }}
             />
           )}
         </div>
+
+        {/* Simple Filter Summary */}
+        {(searchTerm || filters.status || filters.brand_classification || filters.terms_of_shipment) && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex flex-wrap gap-2 text-sm">
+                <span className="font-medium text-amber-800">Active Filters:</span>
+                {searchTerm && <span className="text-amber-700">Search: "{searchTerm}"</span>}
+                {filters.status && <span className="text-amber-700">Status: {filters.status}</span>}
+                {filters.brand_classification && <span className="text-amber-700">Class: {filters.brand_classification}</span>}
+                {filters.terms_of_shipment && <span className="text-amber-700">Terms: {filters.terms_of_shipment}</span>}
+              </div>
+              <button 
+                onClick={() => {
+                  setSearchTerm('');
+                  setFilters({ status: '', brand_classification: '', terms_of_shipment: '' });
+                }}
+                className="text-amber-600 hover:text-amber-800 text-sm font-medium"
+              >
+                Clear All ×
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Data Table */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200/50 overflow-hidden">
@@ -633,6 +820,8 @@ const getEditableColumns = (type: 'company' | 'factory' | 'admin') => {
             onCellUpdate={handleCellUpdate}
             editableColumns={editableColumns}
             tableType={tableType}
+            groupLabels={Object.fromEntries(columns.map(c => [c.key, columnGroups[c.key] || '']))}
+            groupColors={GROUP_COLORS} // Pass the color configuration
           />
         </div>
       </main>
