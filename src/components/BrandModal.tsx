@@ -1,4 +1,5 @@
 import React from 'react';
+import { X, Building, Users, Info } from 'lucide-react';
 import type { DataRecord } from '../types';
 
 interface BrandModalProps {
@@ -8,24 +9,21 @@ interface BrandModalProps {
 }
 
 const BrandModal: React.FC<BrandModalProps> = ({ brand, brandData, onClose }) => {
-  // Helper function to format field names for display
   const formatFieldName = (key: string): string => {
-    // Handle custom fields
     if (key.startsWith('custom_')) {
       return key.replace('custom_', '').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
     }
     
-    // Common field mappings
     const fieldMappings: Record<string, string> = {
-      all_brand: 'Brand',
+      all_brand: 'Brand Name',
       status: 'Status',
-      brand_classification: 'Brand Classification',
+      brand_classification: 'Classification',
       lead_pbd: 'Lead PBD',
       support_pbd: 'Support PBD',
-      td: 'TD',
+      td: 'Technical Director',
       nyo_planner: 'NYO Planner',
       indo_m88_md: 'Indo M88 MD',
-      m88_qa: 'M88 QA',
+      indo_m88_qa: 'Indo M88 QA',
       mlo_planner: 'MLO Planner',
       mlo_logistic: 'MLO Logistic',
       mlo_purchasing: 'MLO Purchasing',
@@ -35,7 +33,6 @@ const BrandModal: React.FC<BrandModalProps> = ({ brand, brandData, onClose }) =>
     return fieldMappings[key] || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
-  // Helper function to format field values for display
   const formatFieldValue = (value: any): string => {
     if (value === null || value === undefined || value === '') {
       return '—';
@@ -56,111 +53,161 @@ const BrandModal: React.FC<BrandModalProps> = ({ brand, brandData, onClose }) =>
     return String(value);
   };
 
-  // Filter out system fields and empty values
+  // Categorize fields
+  const contactPersonFields = [
+    'lead_pbd', 'support_pbd', 'td', 'nyo_planner', 'indo_m88_md', 
+    'indo_m88_qa', 'mlo_planner', 'mlo_logistic', 'mlo_purchasing', 'mlo_costing'
+  ];
+
+  const basicInfoFields = ['all_brand', 'status', 'brand_classification'];
+
   const displayFields = Object.entries(brandData)
-    .filter(([key, value]) => {
-      // Skip system fields
-      if (['id', 'created_at', 'updated_at'].includes(key)) {
-        return false;
-      }
-      
-      // Skip custom_fields object if it exists (we'll show flattened custom fields instead)
-      if (key === 'custom_fields') {
-        return false;
-      }
-      
-      return true;
-    })
-    .sort(([keyA], [keyB]) => {
-      // Sort to show important fields first
-      const importantFields = ['all_brand', 'status', 'brand_classification'];
-      const aIndex = importantFields.indexOf(keyA);
-      const bIndex = importantFields.indexOf(keyB);
-      
-      if (aIndex !== -1 && bIndex !== -1) {
-        return aIndex - bIndex;
-      }
-      if (aIndex !== -1) return -1;
-      if (bIndex !== -1) return 1;
-      
-      return keyA.localeCompare(keyB);
-    });
+    .filter(([key]) => !['id', 'created_at', 'updated_at', 'custom_fields'].includes(key));
+
+  const basicInfo = displayFields.filter(([key]) => basicInfoFields.includes(key));
+  const contactInfo = displayFields.filter(([key]) => contactPersonFields.includes(key) && brandData[key]);
+  const otherInfo = displayFields.filter(([key]) => 
+    !basicInfoFields.includes(key) && 
+    !contactPersonFields.includes(key) &&
+    brandData[key] !== null && 
+    brandData[key] !== undefined && 
+    brandData[key] !== ''
+  );
+
+  const hasAnyData = basicInfo.length > 0 || contactInfo.length > 0 || otherInfo.length > 0;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] relative overflow-hidden">
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6 text-white">
+        <div className="bg-slate-900 px-6 py-5 relative">
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 text-white hover:text-blue-200 text-2xl font-bold transition-colors"
+            className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors duration-200"
             aria-label="Close"
           >
-            ×
+            <X className="w-6 h-6" />
           </button>
-          <h2 className="text-2xl font-bold mb-2">{brand}</h2>
-          <p className="text-blue-100 opacity-90">Brand Details</p>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+              <Building className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold text-white">{brand}</h2>
+              <p className="text-slate-400 text-sm">Brand Information</p>
+            </div>
+          </div>
         </div>
         
         {/* Content */}
-        <div className="p-8 overflow-y-auto max-h-[calc(90vh-120px)]">
-          <div className="grid gap-4">
-            {displayFields.map(([key, value]) => (
-              <div key={key} className="border-b border-slate-100 pb-3 last:border-b-0">
-                <div className="flex flex-col sm:flex-row sm:justify-between gap-2">
-                  <span className="font-medium text-slate-700 text-sm uppercase tracking-wide">
-                    {formatFieldName(key)}
-                  </span>
-                  <div className="text-right sm:text-left sm:max-w-md">
-                    {/* Special handling for different field types */}
-                    {key === 'status' && value ? (
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                        value === 'Active' ? 'bg-green-100 text-green-800' :
-                        value === 'Inactive' ? 'bg-red-100 text-red-800' :
-                        value === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-slate-100 text-slate-800'
-                      }`}>
-                        {formatFieldValue(value)}
-                      </span>
-                    ) : key === 'brand_classification' && value ? (
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                        value === 'Premium' ? 'bg-purple-100 text-purple-800' :
-                        value === 'Standard' ? 'bg-blue-100 text-blue-800' :
-                        value === 'Budget' ? 'bg-orange-100 text-orange-800' :
-                        'bg-slate-100 text-slate-800'
-                      }`}>
-                        {formatFieldValue(value)}
-                      </span>
-                    ) : key.includes('_pbd') || key === 'td' || key.includes('planner') || key.includes('mlo') || key.includes('m88') ? (
-                      // Contact person fields - make them stand out
-                      <span className="text-blue-700 font-medium">
-                        {formatFieldValue(value)}
-                      </span>
-                    ) : key.startsWith('custom_') ? (
-                      // Custom fields - highlight them
-                      <div className="bg-purple-50 px-3 py-2 rounded-lg border border-purple-200">
-                        <span className="text-purple-800 font-medium">
-                          {formatFieldValue(value)}
-                        </span>
-                        <span className="ml-2 text-xs bg-purple-100 text-purple-600 px-2 py-1 rounded">
-                          custom
-                        </span>
+        <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+          {hasAnyData ? (
+            <>
+              {/* Basic Information */}
+              {basicInfo.length > 0 && (
+                <div className="mb-8">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Info className="w-4 h-4 text-slate-600" />
+                    <h3 className="text-base font-medium text-slate-900">
+                      Basic Information ({basicInfo.length})
+                    </h3>
+                  </div>
+                  <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                    {basicInfo.map(([key, value]) => (
+                      <div key={key} className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                        <div className="text-xs font-medium text-slate-600 uppercase tracking-wide mb-2">
+                          {formatFieldName(key)}
+                        </div>
+                        <div className="text-slate-900 font-medium">
+                          {key === 'status' && value ? (
+                            <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium ${
+                              value === 'Active' ? 'bg-green-100 text-green-800' :
+                              value === 'Inactive' ? 'bg-red-100 text-red-800' :
+                              value === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-slate-100 text-slate-800'
+                            }`}>
+                              {formatFieldValue(value)}
+                            </span>
+                          ) : key === 'brand_classification' && value ? (
+                            <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium ${
+                              value === 'Premium' ? 'bg-purple-100 text-purple-800' :
+                              value === 'Standard' ? 'bg-blue-100 text-blue-800' :
+                              value === 'Budget' ? 'bg-orange-100 text-orange-800' :
+                              'bg-slate-100 text-slate-800'
+                            }`}>
+                              {formatFieldValue(value)}
+                            </span>
+                          ) : (
+                            formatFieldValue(value)
+                          )}
+                        </div>
                       </div>
-                    ) : (
-                      <span className="text-slate-900">
-                        {formatFieldValue(value)}
-                      </span>
-                    )}
+                    ))}
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-          
-          {displayFields.length === 0 && (
-            <div className="text-center py-8 text-slate-500">
-              <div className="text-4xl mb-4">📄</div>
-              <p>No additional details available for this brand.</p>
+              )}
+
+              {/* Contact Information */}
+              {contactInfo.length > 0 && (
+                <div className="mb-8">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Users className="w-4 h-4 text-slate-600" />
+                    <h3 className="text-base font-medium text-slate-900">
+                      Contact Persons ({contactInfo.length})
+                    </h3>
+                  </div>
+                  <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                    {contactInfo.map(([key, value]) => (
+                      <div key={key} className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                        <div className="text-xs font-medium text-slate-600 uppercase tracking-wide mb-2">
+                          {formatFieldName(key)}
+                        </div>
+                        <div className="text-slate-900 font-medium">
+                          {formatFieldValue(value)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Additional Information */}
+              {otherInfo.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <Info className="w-4 h-4 text-slate-600" />
+                    <h3 className="text-base font-medium text-slate-900">
+                      Additional Information ({otherInfo.length})
+                    </h3>
+                  </div>
+                  <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                    {otherInfo.map(([key, value]) => (
+                      <div key={key} className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                        <div className="text-xs font-medium text-slate-600 uppercase tracking-wide mb-2">
+                          {formatFieldName(key)}
+                          {key.startsWith('custom_') && (
+                            <span className="ml-1 text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">
+                              custom
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-slate-900 font-medium">
+                          {formatFieldValue(value)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            /* Empty State */
+            <div className="text-center py-16">
+              <Building className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-slate-600 mb-2">No Information Available</h3>
+              <p className="text-slate-500">
+                No data is available for this brand.
+              </p>
             </div>
           )}
         </div>

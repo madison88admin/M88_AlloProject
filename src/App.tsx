@@ -77,14 +77,19 @@ const normalizeYesBlankValue = (value: any): string => {
   return '';
 };
 
-// const isValidYesBlankValue = (value: any): boolean => {
-//   if (!value || value === '' || value === null || value === undefined) {
-//     return true; // Blank is valid
-//   }
-//   
-//   const stringValue = String(value).toLowerCase().trim();
-//   return stringValue === 'yes';
-// };
+// Factory-specific column mapping function
+const getFactorySpecificColumns = (username: string): string[] => {
+  // Map factory usernames to their specific columns
+  const factoryColumnMap: Record<string, string[]> = {
+    'factory_Wuxi': ['fa_wuxi'],
+    'factory_PTwuu': ['fa_pt'],
+    'factory_Singfore': ['fa_singfore'],
+    'factory_HeadsUp': ['fa_heads'],
+    'factory_KoreaMel': ['fa_korea']
+  };
+  
+  return factoryColumnMap[username] || [];
+};
 
 // Custom fields utilities
 const getCustomFieldsFromData = (data: DataRecord[]): Column[] => {
@@ -155,7 +160,6 @@ const M88DatabaseUI = ({
   const [quickView, setQuickView] = useState<'company_essentials' | 'factory_essentials' | 'all' | 'custom'>('company_essentials');
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
 
-
   // Define base columns for all table types
   const baseCompanyColumns: Column[] = [
     { key: 'all_brand', label: 'All Brand', type: 'text', required: true, width: '150px' },
@@ -168,7 +172,7 @@ const M88DatabaseUI = ({
     { key: 'td', label: 'TD', type: 'text', width: '120px' },
     { key: 'nyo_planner', label: 'NYO Planner', type: 'text', width: '150px' },
     { key: 'indo_m88_md', label: 'Indo M88 MD', type: 'text', width: '150px' },
-    { key: 'm88_qa', label: 'M88 QA', type: 'text', width: '120px' },
+    { key: 'indo_m88_qa', label: 'Indo M88 QA', type: 'text', width: '120px' },
     { key: 'mlo_planner', label: 'MLO Planner', type: 'text', width: '150px' },
     { key: 'mlo_logistic', label: 'MLO Logistic', type: 'text', width: '150px' },
     { key: 'mlo_purchasing', label: 'MLO Purchasing', type: 'text', width: '150px' },
@@ -191,22 +195,11 @@ const M88DatabaseUI = ({
     { key: 'fa_heads', label: 'FA Heads', type: 'text', width: '120px' },
   ];
 
-  // Factory excludes these keys from company columns
-  const factoryExcludeKeys = [
-    'all_brand',
-    'fa_wuxi',
-    'fa_hz',
-    'fa_pt',
-    'fa_korea',
-    'fa_singfore',
-    'fa_heads',
-    'wuxi_moretti',
-    'hz_u_jump',
-    'pt_u_jump',
-    'korea_mel',
-    'singfore',
-    'heads_up'
+  // Columns that should never be visible to any factory
+  const alwaysExcludeForFactories = [
+    'all_brand'
   ];
+
   const companyNonEditableKeys = [
     'hz_pt_u_jump_senior_md',
     'pt_ujump_local_md',
@@ -226,9 +219,36 @@ const M88DatabaseUI = ({
     'singfore',
     'heads_up'
   ];
+
+  // Enhanced factory column function that handles factory-specific visibility
+  const getFactoryColumns = (username: string): Column[] => {
+    const factorySpecificColumns = getFactorySpecificColumns(username);
+    
+    // All factory assignment and flag columns
+    const allFactoryColumns = [
+      'fa_wuxi', 'fa_hz', 'fa_pt', 'fa_korea', 'fa_singfore', 'fa_heads',
+      'wuxi_moretti', 'hz_u_jump', 'pt_u_jump', 'korea_mel', 'singfore', 'heads_up'
+    ];
+    
+    return baseCompanyColumns.filter(col => {
+      // Exclude columns that should never be visible to factories
+      if (alwaysExcludeForFactories.includes(col.key)) {
+        return false;
+      }
+      
+      // For factory-specific columns, only include if it belongs to this factory
+      if (allFactoryColumns.includes(col.key)) {
+        return factorySpecificColumns.includes(col.key);
+      }
+      
+      // Include all other columns
+      return true;
+    });
+  };
   
+  // Base factory columns (fallback when no user is provided)
   const baseFactoryColumns: Column[] = baseCompanyColumns.filter(
-    col => !factoryExcludeKeys.includes(col.key)
+    col => !alwaysExcludeForFactories.includes(col.key)
   );
 
   // Admin gets all columns including custom ones
@@ -256,8 +276,9 @@ const M88DatabaseUI = ({
           }
           break;
         case 'factory':
-          // Factory cannot see or add custom columns
-          setFactoryColumnOrder(baseFactoryColumns);
+          // Set factory-specific columns based on user
+          const factoryColumns = user?.username ? getFactoryColumns(user.username) : baseFactoryColumns;
+          setFactoryColumnOrder(factoryColumns);
           break;
         case 'admin':
           // Admin can see and add custom columns
@@ -265,7 +286,7 @@ const M88DatabaseUI = ({
           break;
       }
     }
-  }, [data, tableType, user]);
+  }, [data, tableType, user?.username]);
 
   // Use correct columns based on tableType and user permissions
   const columns = useMemo(() => {
@@ -273,19 +294,20 @@ const M88DatabaseUI = ({
       case 'company':
         return companyColumnOrder; // Base columns + custom columns (visibility based on user type)
       case 'factory':
-        return factoryColumnOrder; // Factory columns only (NO custom columns)
+        // Use factory-specific columns based on logged-in user
+        const factoryColumns = user?.username ? getFactoryColumns(user.username) : factoryColumnOrder;
+        return factoryColumns;
       case 'admin':
         return adminColumnOrder; // All columns + custom columns
       default:
         return companyColumnOrder;
     }
-  }, [tableType, companyColumnOrder, factoryColumnOrder, adminColumnOrder]);
+  }, [tableType, companyColumnOrder, factoryColumnOrder, adminColumnOrder, user?.username]);
 
   const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>({});
 
   // Define column groups for clarity
   const columnGroups: Record<string, string> = useMemo(() => ({
-
     brand_classification: 'Brand Info',
     status: 'Brand Info',
     terms_of_shipment: 'Brand Info',
@@ -294,7 +316,7 @@ const M88DatabaseUI = ({
     td: 'Contact Person',
     nyo_planner: 'Contact Person',
     indo_m88_md: 'Contact Person',
-    m88_qa: 'Contact Person',
+    indo_m88_qa: 'Contact Person',
     mlo_planner: 'Contact Person',
     mlo_logistic: 'Contact Person',
     mlo_purchasing: 'Contact Person',
@@ -395,13 +417,15 @@ const M88DatabaseUI = ({
         setCompanyColumnOrder([...baseCompanyColumns, ...customColumns]);
         break;
       case 'factory':
-        setFactoryColumnOrder(baseFactoryColumns); // No custom columns for factory
+        // Use factory-specific columns
+        const factoryColumns = user?.username ? getFactoryColumns(user.username) : baseFactoryColumns;
+        setFactoryColumnOrder(factoryColumns);
         break;
       case 'admin':
         setAdminColumnOrder([...baseAdminColumns, ...customColumns]);
         break;
     }
-  }, [tableType, customColumns]);
+  }, [tableType, customColumns, user?.username]);
 
   const handleSort = (key: string) => {
     setSortConfig(prev => ({
