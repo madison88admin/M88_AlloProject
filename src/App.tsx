@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Plus, Building2, RefreshCw, X, ChevronDown, Filter, Sun, Moon } from 'lucide-react';
+import { Plus, RefreshCw, X, ChevronDown, Filter, Sun, Moon, Activity } from 'lucide-react';
 
 import type { Column, SortConfig, Filters, DataRecord, ColumnVisibility } from './types';
 import { useM88Data } from './hooks/useM88data';
@@ -12,6 +12,7 @@ import { SearchBar } from './components/SearchBar';
 import { FiltersPanel } from './components/FiltersPanel';
 import { DataTable } from './components/DataTable';
 import { RecordModal } from './components/RecordModal';
+import UserLogs from './components/UserLogs';
 
 // Account interface for user prop
 interface Account {
@@ -89,11 +90,11 @@ const normalizeYesBlankValue = (value: any): string => {
 const getFactorySpecificColumns = (username: string): string[] => {
   // Map factory usernames to their specific columns
   const factoryColumnMap: Record<string, string[]> = {
-    'factory_Wuxi': ['fa_wuxi'],
-    'factory_PTwuu': ['fa_pt'],
-    'factory_Singfore': ['fa_singfore'],
-    'factory_HeadsUp': ['fa_heads'],
-    'factory_KoreaMel': ['fa_korea']
+    'factory_Wuxi': ['fa_wuxi', 'wuxi_jump_senior_md', 'wuxi_local_md', 'wuxi_shipping'],
+    'factory_PTwuuUjump': ['fa_pt', 'hz_pt_u_jump_senior_md', 'pt_ujump_local_md', 'hz_u_jump_shipping', 'pt_ujump_shipping'],
+    'factory_Singfore': ['fa_singfore', 'singfore_jump_senior_md', 'singfore_local_md', 'singfore_shipping'],
+    'factory_HeadsUp': ['fa_heads', 'headsup_senior_md', 'headsup_local_md', 'headsup_shipping'],
+    'factory_KoreaMel': ['fa_korea', 'koreamel_jump_senior_md', 'koreamel_local_md', 'koreamel_shipping']
   };
   
   return factoryColumnMap[username] || [];
@@ -148,10 +149,9 @@ const M88DatabaseUI = ({
     handleDeleteRecord,
     handleAddRecord,
     handleRefreshData,
-    getFilteredData,
     getUniqueValues,
     data // Add this to get the raw data
-  } = useM88Data();
+  } = useM88Data(user);
 
   // UI State
   const [searchTerm, setSearchTerm] = useState('');
@@ -168,6 +168,7 @@ const M88DatabaseUI = ({
   const [quickView, setQuickView] = useState<'company_essentials' | 'factory_essentials' | 'all' | 'custom'>('company_essentials');
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [showUserLogs, setShowUserLogs] = useState(false);
 
   // Define base columns for all table types
   const baseCompanyColumns: Column[] = [
@@ -196,6 +197,18 @@ const M88DatabaseUI = ({
     { key: 'pt_ujump_local_md', label: 'PT UJUMP Local MD', type: 'text', width: '150px' },
     { key: 'hz_u_jump_shipping', label: 'HZ U-JUMP Shipping', type: 'text', width: '150px' },
     { key: 'pt_ujump_shipping', label: 'PT UJUMP Shipping', type: 'text', width: '150px' },
+    { key: 'wuxi_jump_senior_md', label: 'Wuxi Jump Senior MD', type: 'text', width: '180px' },
+    { key: 'wuxi_local_md', label: 'Wuxi Local MD', type: 'text', width: '150px' },
+    { key: 'wuxi_shipping', label: 'Wuxi Shipping', type: 'text', width: '150px' },
+    { key: 'singfore_jump_senior_md', label: 'Singfore Jump Senior MD', type: 'text', width: '180px' },
+    { key: 'singfore_local_md', label: 'Singfore Local MD', type: 'text', width: '150px' },
+    { key: 'singfore_shipping', label: 'Singfore Shipping', type: 'text', width: '150px' },
+    { key: 'koreamel_jump_senior_md', label: 'KoreaMel Jump Senior MD', type: 'text', width: '180px' },
+    { key: 'koreamel_local_md', label: 'KoreaMel Local MD', type: 'text', width: '150px' },
+    { key: 'koreamel_shipping', label: 'KoreaMel Shipping', type: 'text', width: '150px' },
+    { key: 'headsup_senior_md', label: 'HeadsUp Senior MD', type: 'text', width: '180px' },
+    { key: 'headsup_local_md', label: 'HeadsUp Local MD', type: 'text', width: '150px' },
+    { key: 'headsup_shipping', label: 'HeadsUp Shipping', type: 'text', width: '150px' },
     { key: 'fa_wuxi', label: 'FA Wuxi', type: 'text', width: '120px' },
     { key: 'fa_hz', label: 'FA HZ', type: 'text', width: '120px' },
     { key: 'fa_pt', label: 'FA PT', type: 'text', width: '120px' },
@@ -213,7 +226,25 @@ const M88DatabaseUI = ({
     'hz_pt_u_jump_senior_md',
     'pt_ujump_local_md',
     'hz_u_jump_shipping',
-    'pt_ujump_shipping'
+    'pt_ujump_shipping',
+    'wuxi_jump_senior_md',
+    'wuxi_local_md',
+    'wuxi_shipping',
+    'singfore_jump_senior_md',
+    'singfore_local_md',
+    'singfore_shipping',
+    'koreamel_jump_senior_md',
+    'koreamel_local_md',
+    'koreamel_shipping',
+    'headsup_senior_md',
+    'headsup_local_md',
+    'headsup_shipping',
+    'fa_wuxi', 
+    'fa_hz', 
+    'fa_pt', 
+    'fa_korea', 
+    'fa_singfore', 
+    'fa_heads'
   ];
 
   const factoryNonEditableKeys = [
@@ -233,13 +264,25 @@ const M88DatabaseUI = ({
   const getFactoryColumns = (username: string): Column[] => {
     const factorySpecificColumns = getFactorySpecificColumns(username);
     
-    // All factory assignment and flag columns
+    // Debug logging
+    console.log('Factory columns debug:', {
+      username,
+      factorySpecificColumns,
+      baseCompanyColumnsCount: baseCompanyColumns.length
+    });
+    
+    // All factory assignment, flag, and new factory-specific columns
     const allFactoryColumns = [
       'fa_wuxi', 'fa_hz', 'fa_pt', 'fa_korea', 'fa_singfore', 'fa_heads',
-      'wuxi_moretti', 'hz_u_jump', 'pt_u_jump', 'korea_mel', 'singfore', 'heads_up'
+      'wuxi_moretti', 'hz_u_jump', 'pt_u_jump', 'korea_mel', 'singfore', 'heads_up',
+      'hz_pt_u_jump_senior_md', 'pt_ujump_local_md', 'hz_u_jump_shipping', 'pt_ujump_shipping',
+      'wuxi_jump_senior_md', 'wuxi_local_md', 'wuxi_shipping',
+      'singfore_jump_senior_md', 'singfore_local_md', 'singfore_shipping',
+      'koreamel_jump_senior_md', 'koreamel_local_md', 'koreamel_shipping',
+      'headsup_senior_md', 'headsup_local_md', 'headsup_shipping'
     ];
     
-    return baseCompanyColumns.filter(col => {
+    const filteredColumns = baseCompanyColumns.filter(col => {
       // Exclude columns that should never be visible to factories
       if (alwaysExcludeForFactories.includes(col.key)) {
         return false;
@@ -250,9 +293,13 @@ const M88DatabaseUI = ({
         return factorySpecificColumns.includes(col.key);
       }
       
-      // Include all other columns
+      // Include all other columns (standard columns like contact person, etc.)
       return true;
     });
+    
+    console.log('Filtered factory columns:', filteredColumns.map(col => col.key));
+    
+    return filteredColumns;
   };
   
   // Base factory columns (fallback when no user is provided)
@@ -340,6 +387,18 @@ const M88DatabaseUI = ({
     pt_ujump_local_md: 'Factory Assignment',
     hz_u_jump_shipping: 'Factory Assignment',
     pt_ujump_shipping: 'Factory Assignment',
+    wuxi_jump_senior_md: 'Factory Assignment',
+    wuxi_local_md: 'Factory Assignment',
+    wuxi_shipping: 'Factory Assignment',
+    singfore_jump_senior_md: 'Factory Assignment',
+    singfore_local_md: 'Factory Assignment',
+    singfore_shipping: 'Factory Assignment',
+    koreamel_jump_senior_md: 'Factory Assignment',
+    koreamel_local_md: 'Factory Assignment',
+    koreamel_shipping: 'Factory Assignment',
+    headsup_senior_md: 'Factory Assignment',
+    headsup_local_md: 'Factory Assignment',
+    headsup_shipping: 'Factory Assignment',
     fa_wuxi: 'Factory Assignment',
     fa_hz: 'Factory Assignment',
     fa_pt: 'Factory Assignment',
@@ -394,7 +453,29 @@ const M88DatabaseUI = ({
 
   // Enhanced data processing to flatten custom fields
   const processedData = useMemo(() => {
-    return getFilteredData(searchTerm, filters).map(record => {
+    let filtered = data;
+
+    // Always exclude records with Inactive status
+    filtered = filtered.filter(row => {
+      const statusValue = String(row.status ?? '').trim().toLowerCase();
+      return statusValue !== 'inactive';
+    });
+
+    if (searchTerm) {
+      filtered = filtered.filter(row =>
+        Object.values(row).some(value =>
+          String(value).toLowerCase().includes(searchTerm.toLowerCase())
+        )
+      );
+    }
+
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value) {
+        filtered = filtered.filter(row => row[key] === value);
+      }
+    });
+
+    return filtered.map(record => {
       const processedRecord = { ...record };
       
       // Flatten custom_fields into the main record object
@@ -406,11 +487,11 @@ const M88DatabaseUI = ({
       
       return processedRecord;
     });
-  }, [getFilteredData, searchTerm, filters]);
+  }, [data, searchTerm, filters]);
 
   // Initialize column visibility when columns change  
   useEffect(() => {
-    setColumnVisibility(prev => {
+    setColumnVisibility(() => {
       const newVisibility: ColumnVisibility = {};
       columns.forEach((col) => {
         newVisibility[col.key] = true;
@@ -644,9 +725,21 @@ const M88DatabaseUI = ({
     } 
     
     if (type === 'factory') {
-      // Let factories edit all except explicitly blocked
+      // Get factory-specific columns that this factory can edit
+      const factorySpecificColumns = user?.username ? getFactorySpecificColumns(user.username) : [];
+      
       return columns
-        .filter(col => !factoryNonEditableKeys.includes(col.key))
+        .filter(col => {
+          // Allow editing if it's not in the non-editable list
+          if (!factoryNonEditableKeys.includes(col.key)) {
+            return true;
+          }
+          // Allow editing if it's a factory-specific column for this factory
+          if (factorySpecificColumns.includes(col.key)) {
+            return true;
+          }
+          return false;
+        })
         .map(col => col.key);
     }
   
@@ -772,6 +865,16 @@ const M88DatabaseUI = ({
                 >
                   <Plus className="w-4 h-4" />
                   <span className="hidden sm:inline ml-2">Add Record</span>
+                </button>
+              )}
+              {tableType === 'admin' && (
+                <button 
+                  onClick={() => setShowUserLogs(true)}
+                  className={`${isDarkMode ? 'bg-purple-700 text-white hover:bg-purple-600' : 'bg-purple-600 text-white hover:bg-purple-500'} shadow-lg hover:shadow-xl p-2 sm:p-3 rounded-lg transition-all duration-200`}
+                  title="View User Activity Logs"
+                >
+                  <Activity className="w-4 h-4" />
+                  <span className="hidden sm:inline ml-2">Activity Logs</span>
                 </button>
               )}
             </div>
@@ -954,6 +1057,7 @@ const M88DatabaseUI = ({
         }}
         columns={columns}
         title="Add New Record"
+        userRole={user?.type}
       />
 
       <RecordModal
@@ -963,7 +1067,16 @@ const M88DatabaseUI = ({
         record={editingRecord}
         columns={columns}
         title="Edit Record"
+        userRole={user?.type}
       />
+
+      {/* User Logs Modal - Only for Admin */}
+      {tableType === 'admin' && (
+        <UserLogs
+          isOpen={showUserLogs}
+          onClose={() => setShowUserLogs(false)}
+        />
+      )}
     </div>
   );
 };

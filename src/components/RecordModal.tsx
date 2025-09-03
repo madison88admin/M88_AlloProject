@@ -9,6 +9,7 @@ interface RecordModalProps {
   record?: DataRecord | null;
   columns: Column[];
   title: string;
+  userRole?: 'company' | 'factory' | 'admin';
 }
 
 // Utility function to normalize yes_blank values
@@ -19,13 +20,48 @@ const normalizeYesBlankValue = (value: any): string => {
   return '';
 };
 
+// Fields that company users cannot edit
+const COMPANY_RESTRICTED_FIELDS = [
+  'hz_pt_u_jump_senior_md',
+  'pt_ujump_local_md', 
+  'hz_u_jump_shipping',
+  'pt_ujump_shipping',
+  'wuxi_jump_senior_md',
+  'wuxi_local_md',
+  'wuxi_shipping',
+  'singfore_jump_senior_md',
+  'singfore_local_md',
+  'singfore_shipping',
+  'koreamel_jump_senior_md',
+  'koreamel_local_md',
+  'koreamel_shipping',
+  'headsup_senior_md',
+  'headsup_local_md',
+  'headsup_shipping',
+  'fa_wuxi', 
+  'fa_hz', 
+  'fa_pt', 
+  'fa_korea', 
+  'fa_singfore', 
+  'fa_heads'
+];
+
+// Check if a field should be restricted for the current user
+const isFieldRestricted = (columnKey: string, userRole?: string): boolean => {
+  if (userRole === 'company') {
+    return COMPANY_RESTRICTED_FIELDS.includes(columnKey);
+  }
+  return false;
+};
+
 export const RecordModal = ({
   isOpen,
   onClose,
   onSave,
   record,
   columns,
-  title
+  title,
+  userRole
 }: RecordModalProps) => {
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(false);
@@ -110,7 +146,9 @@ export const RecordModal = ({
         {/* Professional Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-8 overflow-y-auto max-h-[calc(90vh-140px)]">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {columns.map(col => (
+            {columns
+              .filter(col => !isFieldRestricted(col.key, userRole))
+              .map(col => (
               <div key={col.key} className={`space-y-3 ${col.key === 'all_brand' ? 'md:col-span-2' : ''}`}>
                 <label className="block text-sm font-semibold text-secondary-700">
                   {col.label}

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Eye, EyeOff, AlertCircle, User, Building2 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import M88DatabaseUI from '../App';
+import { logUserLogin, logUserLogout } from '../services/loggingService';
 
 // Updated Account type to include admin
 type Account = {
@@ -76,6 +77,9 @@ const LoginPage = () => {
       setAuthenticatedUser(user);
       setError('');
       
+      // Log the login
+      logUserLogin(user.id, user.username, user.type);
+      
       // Clear form
       setUsername('');
       setPassword('');
@@ -90,6 +94,12 @@ const LoginPage = () => {
 
   const handleLogout = () => {
     console.log('User logged out');
+    
+    // Log the logout if user is authenticated
+    if (authenticatedUser) {
+      logUserLogout(authenticatedUser.id, authenticatedUser.username, authenticatedUser.type);
+    }
+    
     setAuthenticatedUser(null);
     setUsername('');
     setPassword('');
@@ -112,8 +122,6 @@ const LoginPage = () => {
 
   // If user is authenticated, show the main app
   if (authenticatedUser) {
-    const userTypeInfo = getUserTypeInfo(authenticatedUser.type);
-    
     return (
       <M88DatabaseUI 
         tableType={authenticatedUser.type} 

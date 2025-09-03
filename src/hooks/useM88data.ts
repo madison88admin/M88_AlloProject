@@ -1,8 +1,15 @@
 import { useState, useEffect, useMemo } from 'react';
 import type { DataRecord, Filters, Analytics } from '../types';
 import { fetchM88Data, updateM88Record, createM88Record, deleteM88Record } from '../services/api';
+import { logRecordCreate, logRecordUpdate, logRecordDelete, logSearch, logFilter } from '../services/loggingService';
 
-export const useM88Data = () => {
+interface UserInfo {
+  id: string;
+  username: string;
+  type: 'company' | 'factory' | 'admin';
+}
+
+export const useM88Data = (user?: UserInfo) => {
   const [data, setData] = useState<DataRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,8 +38,31 @@ export const useM88Data = () => {
 
   const handleSaveRecord = async (record: DataRecord) => {
     try {
+      const originalRecord = data.find(r => r.id === record.id);
       const updatedRecord = await updateM88Record(record);
       setData(prev => prev.map(r => r.id === updatedRecord.id ? updatedRecord : r));
+      
+      // Log the update if user info is available
+      if (user && originalRecord) {
+        // Find changed fields
+        const changedFields = Object.keys(record).filter(key => 
+          originalRecord[key] !== record[key] && key !== 'id'
+        );
+        
+        changedFields.forEach(field => {
+          logRecordUpdate(
+            user.id,
+            user.username,
+            user.type,
+            record.id,
+            record.all_brand || 'Unknown Brand',
+            field,
+            originalRecord[field],
+            record[field]
+          );
+        });
+      }
+      
       return updatedRecord;
     } catch (err) {
       throw new Error(err instanceof Error ? err.message : 'Failed to save record');
@@ -41,8 +71,20 @@ export const useM88Data = () => {
 
   const handleDeleteRecord = async (id: number) => {
     try {
+      const recordToDelete = data.find(r => r.id === id);
       await deleteM88Record(id);
       setData(prev => prev.filter(r => r.id !== id));
+      
+      // Log the deletion if user info is available
+      if (user && recordToDelete) {
+        logRecordDelete(
+          user.id,
+          user.username,
+          user.type,
+          id,
+          recordToDelete.all_brand || 'Unknown Brand'
+        );
+      }
     } catch (err) {
       throw new Error(err instanceof Error ? err.message : 'Failed to delete record');
     }
@@ -52,6 +94,18 @@ export const useM88Data = () => {
     try {
       const createdRecord = await createM88Record(newRecord);
       setData(prev => [...prev, createdRecord]);
+      
+      // Log the creation if user info is available
+      if (user) {
+        logRecordCreate(
+          user.id,
+          user.username,
+          user.type,
+          createdRecord.id,
+          createdRecord.all_brand || 'Unknown Brand'
+        );
+      }
+      
       return createdRecord;
     } catch (err) {
       throw new Error(err instanceof Error ? err.message : 'Failed to add record');
@@ -85,16 +139,26 @@ export const useM88Data = () => {
             String(value).toLowerCase().includes(searchTerm.toLowerCase())
           )
         );
+        
+        // Log search if user info is available
+        if (user) {
+          logSearch(user.id, user.username, user.type, searchTerm);
+        }
       }
 
       Object.entries(filters).forEach(([key, value]) => {
         if (value) {
           filtered = filtered.filter(row => row[key] === value);
+          
+          // Log filter if user info is available
+          if (user) {
+            logFilter(user.id, user.username, user.type, key, value);
+          }
         }
       });
 
       return filtered;
-    }, [data, searchTerm, filters]);
+    }, [data, searchTerm, filters, user]);
   };
 
   const getAnalytics = (filteredData: DataRecord[]): Analytics => {

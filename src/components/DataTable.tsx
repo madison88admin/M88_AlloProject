@@ -586,9 +586,7 @@ export const DataTable = ({
 
         // Editable text fields
         if (isEditable && (col.type === 'text' || !col.type)) {
-          const factoryEditableColumns = ['hz_pt_u_jump_senior_md', 'pt_ujump_local_md', 'hz_u_jump_shipping', 'pt_ujump_shipping'];
-          
-          if (tableType === 'factory' && factoryEditableColumns.includes(col.key)) {
+          if (tableType === 'factory' && editableColumns.includes(col.key)) {
             return (
               <div className="px-2 py-1">
                 <span 
