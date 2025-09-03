@@ -223,7 +223,7 @@ export const DataTable = ({
       acc += width;
     }
   }
-  const totalStickyWidth = leftOffsets[stickyLeftCount - 1] + (stickyWidths[stickyLeftCount - 1] || 0);
+  // const totalStickyWidth = leftOffsets[stickyLeftCount - 1] + (stickyWidths[stickyLeftCount - 1] || 0);
 
   // Helper function to get consistent background color for frozen section
   const getFrozenBgColor = (rowIndex: number, isHeader: boolean = false) => {
@@ -661,25 +661,49 @@ export const DataTable = ({
 
   if (data.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-center">
-        <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mb-4">
-          <Database className="w-8 h-8 text-slate-400" />
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <div className="relative mb-6">
+          <div className="w-20 h-20 bg-gradient-to-br from-secondary-100 to-secondary-200 rounded-3xl flex items-center justify-center shadow-soft">
+            <Database className="w-10 h-10 text-secondary-400" />
+          </div>
+          <div className="absolute -top-2 -right-2 w-6 h-6 bg-warning-100 rounded-full flex items-center justify-center">
+            <span className="text-warning-600 text-xs font-bold">0</span>
+          </div>
         </div>
-        <h3 className="text-lg font-semibold text-slate-900 mb-2">No records found</h3>
-        <p className="text-slate-500 max-w-sm">Try adjusting your search terms or filters to find what you're looking for.</p>
+        <h3 className="text-xl font-semibold text-secondary-900 mb-3">No records found</h3>
+        <p className="text-secondary-500 max-w-md leading-relaxed">
+          No data matches your current search criteria. Try adjusting your search terms or filters to find what you're looking for.
+        </p>
+        <div className="mt-6 flex gap-3">
+          <div className="badge-secondary">Search</div>
+          <div className="badge-secondary">Filters</div>
+          <div className="badge-secondary">Columns</div>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="relative">
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-        {/* Scroll Controls */}
-        <div className="flex items-center justify-center p-4 border-b border-slate-200 bg-slate-50">
+      <div className="overflow-hidden bg-white">
+        {/* Professional Scroll Controls */}
+        <div className="flex items-center justify-between p-4 border-b border-secondary-200 bg-gradient-to-r from-secondary-50 to-secondary-100/50">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-success-500 rounded-full animate-pulse-soft"></div>
+              <span className="text-sm font-medium text-secondary-600">
+                {data.length} records loaded
+              </span>
+            </div>
+            <div className="w-px h-4 bg-secondary-300"></div>
+            <span className="text-sm text-secondary-500">
+              {columns.length} columns visible
+            </span>
+          </div>
           <div className="flex items-center gap-2">
             <button
               onClick={scrollLeft}
-              className="w-10 h-10 bg-white border border-slate-200 rounded-lg shadow-sm flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-10 h-10 bg-white border border-secondary-200 rounded-xl shadow-soft flex items-center justify-center text-secondary-600 hover:text-secondary-900 hover:bg-secondary-50 hover:shadow-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               title="Scroll left"
               disabled={!showLeftScroll}
             >
@@ -687,7 +711,7 @@ export const DataTable = ({
             </button>
             <button
               onClick={scrollRight}
-              className="w-10 h-10 bg-white border border-slate-200 rounded-lg shadow-sm flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-10 h-10 bg-white border border-secondary-200 rounded-xl shadow-soft flex items-center justify-center text-secondary-600 hover:text-secondary-900 hover:bg-secondary-50 hover:shadow-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               title="Scroll right"
               disabled={!showRightScroll}
             >
@@ -702,10 +726,10 @@ export const DataTable = ({
           style={{ scrollbarWidth: 'thin' }}
         >
           <table className="w-full min-w-max">
-            <thead className="sticky top-0 z-50 bg-white shadow-sm">
-              {/* Group header row */}
+            <thead className="sticky top-0 z-50 bg-white shadow-medium">
+              {/* Professional Group header row */}
               {Object.keys(groupLabels).length > 0 && (
-                <tr className="border-b border-slate-200">
+                <tr className="border-b border-secondary-200">
                   {(() => {
                     const cells: JSX.Element[] = [];
                     let i = 0;
@@ -729,7 +753,7 @@ export const DataTable = ({
                         <th
                           key={`grp-${i}`}
                           colSpan={span}
-                          className={`text-center py-3 px-4 text-xs font-bold uppercase tracking-wide whitespace-nowrap border-r border-slate-200 last:border-r-0 ${colors.text} ${colors.headerBg} ${
+                          className={`text-center py-4 px-4 text-xs font-bold uppercase tracking-wider whitespace-nowrap border-r border-secondary-200 last:border-r-0 ${colors.text} ${colors.headerBg} ${
                             isSticky ? 'sticky z-50' : ''
                           }`}
                           style={isSticky ? { 
@@ -738,7 +762,10 @@ export const DataTable = ({
                             boxShadow: i === stickyLeftCount - 1 ? '2px 0 4px -2px rgba(0,0,0,0.15)' : 'none'
                           } : {}}
                         >
-                          {label}
+                          <div className="flex items-center justify-center gap-2">
+                            <div className={`w-2 h-2 rounded-full ${colors.background.replace('bg-', 'bg-').replace('-50', '-500')}`}></div>
+                            {label}
+                          </div>
                         </th>
                       );
 
@@ -747,16 +774,19 @@ export const DataTable = ({
                     return cells;
                   })()}
                   {showActionsColumn && (
-                    <th className="w-32 py-3 px-4 text-center text-xs font-bold uppercase tracking-wide text-slate-700 bg-slate-100 border-l-2 border-slate-300 sticky right-0 z-50" 
+                    <th className="w-32 py-4 px-4 text-center text-xs font-bold uppercase tracking-wider text-secondary-700 bg-secondary-100 border-l-2 border-secondary-300 sticky right-0 z-50" 
                         style={{ backgroundColor: getFrozenBgColor(-1, true), boxShadow: '-2px 0 4px -2px rgba(0,0,0,0.15)' }}>
-                      Actions
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="w-2 h-2 bg-secondary-500 rounded-full"></div>
+                        Actions
+                      </div>
                     </th>
                   )}
                 </tr>
               )}
 
-              {/* Main header row */}
-              <tr className="border-b-2 border-slate-200">
+              {/* Professional Main header row */}
+              <tr className="border-b-2 border-secondary-200">
                 {visibleColumns.map((col, colIndex) => {
                   const colors = getColumnColors(col.key);
                   const isSticky = colIndex < stickyLeftCount;
@@ -771,12 +801,13 @@ export const DataTable = ({
                       onDragOver={(e) => handleDragOver(e, col.key)}
                       onDragLeave={handleDragLeave}
                       onDrop={(e) => handleDrop(e, col.key)}
-                      className={`text-left py-4 px-4 text-sm font-semibold cursor-pointer transition-all duration-150 group whitespace-nowrap min-w-[150px] border-r border-slate-200 ${colors.headerBg} ${colors.text}
-                        ${draggedColumn === col.key ? 'opacity-50 bg-blue-100' : ''}
-                        ${dragOverColumn === col.key && draggedColumn !== col.key ? 'bg-blue-200 border-l-4 border-blue-600' : ''}
+                      className={`text-left py-5 px-4 text-sm font-semibold cursor-pointer transition-all duration-200 group whitespace-nowrap min-w-[150px] border-r border-secondary-200 ${colors.headerBg} ${colors.text}
+                        ${draggedColumn === col.key ? 'opacity-50 bg-primary-100' : ''}
+                        ${dragOverColumn === col.key && draggedColumn !== col.key ? 'bg-primary-200 border-l-4 border-primary-600' : ''}
                         ${onColumnUpdate ? 'select-none' : ''}
                         ${isSticky ? 'sticky z-50' : ''}
-                        ${isLastSticky ? 'border-r-2 border-slate-300' : ''}
+                        ${isLastSticky ? 'border-r-2 border-secondary-300' : ''}
+                        hover:bg-opacity-80
                       `}
                       style={isSticky ? { 
                         left: leftOffsets[colIndex], 
@@ -869,27 +900,26 @@ export const DataTable = ({
               </tr>
             </thead>
             
-            <tbody className="divide-y divide-slate-200">
+            <tbody className="divide-y divide-secondary-100">
               {data.map((row, rowIndex) => (
                 <tr 
                   key={row.id} 
-                  className="group transition-all duration-150 hover:bg-blue-50/50"
+                  className="group transition-all duration-200 hover:bg-primary-50/30 table-row"
                 >
                   {visibleColumns.map((col, colIndex) => {
-                    const colors = getColumnColors(col.key);
                     const isSticky = colIndex < stickyLeftCount;
                     const isLastSticky = colIndex === stickyLeftCount - 1;
                     
                     return (
                       <td
                         key={col.key}
-                        className={`text-sm border-r border-slate-200 transition-all duration-150 ${
-                          col.custom ? 'bg-purple-50/20' : ''
+                        className={`text-sm border-r border-secondary-200 transition-all duration-200 ${
+                          col.custom ? 'bg-brand-purple/5' : ''
                         } ${
                           isSticky ? 'sticky z-40' : ''
                         } ${
-                          isLastSticky ? 'border-r-2 border-slate-300' : ''
-                        }`}
+                          isLastSticky ? 'border-r-2 border-secondary-300' : ''
+                        } table-cell`}
                         style={isSticky ? { 
                           left: leftOffsets[colIndex], 
                           width: col.width || '150px',
@@ -897,7 +927,7 @@ export const DataTable = ({
                           boxShadow: isLastSticky ? '2px 0 4px -2px rgba(0,0,0,0.1)' : 'none'
                         } : { width: col.width || '150px' }}
                       >
-                        <div className="py-3 min-h-[3rem] flex items-center">
+                        <div className="py-4 min-h-[3.5rem] flex items-center">
                           {renderCellContent(row, col)}
                         </div>
                       </td>
@@ -906,25 +936,25 @@ export const DataTable = ({
                   
                   {showActionsColumn && (
                     <td 
-                      className="text-center sticky right-0 z-40 border-l-2 border-slate-300"
+                      className="text-center sticky right-0 z-40 border-l-2 border-secondary-300"
                       style={{ 
                         backgroundColor: getFrozenBgColor(rowIndex),
                         boxShadow: '-2px 0 4px -2px rgba(0,0,0,0.1)'
                       }}
                     >
-                      <div className="py-3 min-h-[3rem] flex items-center justify-center">
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200">
+                      <div className="py-4 min-h-[3.5rem] flex items-center justify-center">
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-300">
                           <button
                             onClick={() => onEdit(row)}
-                            className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-100 rounded-lg transition-all duration-200"
-                            title="Edit"
+                            className="p-2.5 text-secondary-600 hover:text-primary-600 hover:bg-primary-100 rounded-xl transition-all duration-200 shadow-soft hover:shadow-medium"
+                            title="Edit record"
                           >
                             <Edit2 className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => onDelete(row)}
-                            className="p-2 text-slate-600 hover:text-red-600 hover:bg-red-100 rounded-lg transition-all duration-200"
-                            title="Delete"
+                            className="p-2.5 text-secondary-600 hover:text-error-600 hover:bg-error-100 rounded-xl transition-all duration-200 shadow-soft hover:shadow-medium"
+                            title="Delete record"
                           >
                             <X className="w-4 h-4" />
                           </button>

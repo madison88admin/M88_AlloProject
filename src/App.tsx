@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Plus, Building2, RefreshCw, X } from 'lucide-react';
+import { Plus, Building2, RefreshCw, X, ChevronDown, Filter, Sun, Moon } from 'lucide-react';
 
 import type { Column, SortConfig, Filters, DataRecord, ColumnVisibility } from './types';
 import { useM88Data } from './hooks/useM88data';
@@ -27,39 +27,47 @@ interface Account {
   is_active?: boolean;
 }
 
-// Color scheme for column groups
+// Professional color scheme for column groups
 const GROUP_COLORS = {
   'Brand Info': {
-    background: 'bg-blue-50',
-    border: 'border-blue-200',
-    text: 'text-blue-800',
-    hover: 'hover:bg-blue-100',
-    headerBg: 'bg-blue-100/50',
-    cellBg: 'bg-blue-50/30'
+    background: 'bg-primary-50',
+    border: 'border-primary-200',
+    text: 'text-primary-800',
+    hover: 'hover:bg-primary-100',
+    headerBg: 'bg-primary-100/50',
+    cellBg: 'bg-primary-50/30',
+    icon: 'text-primary-600',
+    badge: 'badge-primary'
   },
   'Contact Person': {
-    background: 'bg-green-50',
-    border: 'border-green-200',
-    text: 'text-green-800',
-    hover: 'hover:bg-green-100',
-    headerBg: 'bg-green-100/50',
-    cellBg: 'bg-green-50/30'
+    background: 'bg-success-50',
+    border: 'border-success-200',
+    text: 'text-success-800',
+    hover: 'hover:bg-success-100',
+    headerBg: 'bg-success-100/50',
+    cellBg: 'bg-success-50/30',
+    icon: 'text-success-600',
+    badge: 'badge-success'
   },
   'Flags': {
-    background: 'bg-amber-50',
-    border: 'border-amber-200',
-    text: 'text-amber-800',
-    hover: 'hover:bg-amber-100',
-    headerBg: 'bg-amber-100/50',
-    cellBg: 'bg-amber-50/30'
+    background: 'bg-warning-50',
+    border: 'border-warning-200',
+    text: 'text-warning-800',
+    hover: 'hover:bg-warning-100',
+    headerBg: 'bg-warning-100/50',
+    cellBg: 'bg-warning-50/30',
+    icon: 'text-warning-600',
+    badge: 'badge-warning'
   },
   'Factory Assignment': {
-    background: 'bg-purple-50',
-    border: 'border-purple-200',
-    text: 'text-purple-800',
-    hover: 'hover:bg-purple-100',
-    headerBg: 'bg-purple-100/50',
-    cellBg: 'bg-purple-50/30'
+    background: 'bg-brand-purple/5',
+    border: 'border-brand-purple/20',
+    text: 'text-brand-purple',
+    hover: 'hover:bg-brand-purple/10',
+    headerBg: 'bg-brand-purple/10',
+    cellBg: 'bg-brand-purple/5',
+    icon: 'text-brand-purple',
+    badge: 'bg-brand-purple/10 text-brand-purple'
   }
 } as const;
 
@@ -159,6 +167,7 @@ const M88DatabaseUI = ({
   const [customColumns, setCustomColumns] = useState<Column[]>([]);
   const [quickView, setQuickView] = useState<'company_essentials' | 'factory_essentials' | 'all' | 'custom'>('company_essentials');
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
   // Define base columns for all table types
   const baseCompanyColumns: Column[] = [
@@ -358,6 +367,15 @@ const M88DatabaseUI = ({
   useEffect(() => {
     localStorage.setItem('m88.collapsedGroups', JSON.stringify(collapsedGroups));
   }, [collapsedGroups]);
+
+  // Dark mode effect
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDarkMode]);
 
   // Handle column reordering
   const handleColumnUpdate = (newColumns: Column[]) => {
@@ -681,45 +699,65 @@ const M88DatabaseUI = ({
   if (error) return <ErrorScreen error={error} onRetry={loadData} />;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/30">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b border-slate-200/50 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-6 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
-                <Building2 className="w-6 h-6 text-white" />
+    <div className="min-h-screen bg-gradient-to-br from-secondary-50 via-primary-50/30 to-brand-indigo/5 dark:from-secondary-900 dark:via-secondary-800/50 dark:to-secondary-900">
+      {/* Professional Header */}
+      <header className="glass border-b border-secondary-200/50 sticky top-0 z-40 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="flex items-center space-x-4 sm:space-x-6">
+              <div className="relative">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-primary-500 via-primary-600 to-brand-indigo rounded-2xl flex items-center justify-center shadow-medium">
+                  <Building2 className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+                </div>
+                <div className="absolute -top-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-success-500 rounded-full border-2 border-white animate-pulse-soft"></div>
               </div>
-              <div>
-                <h1 className="text-2xl font-bold text-slate-900">M88 Account Allocation</h1>
-                <p className="text-sm text-slate-600">
-                  {getTableTypeDisplayName(tableType)} • Enterprise Brand Management System • Connected to Database
-                </p>
+              <div className="min-w-0 flex-1">
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-secondary-900 dark:text-white tracking-tight truncate">M88 Account Allocation</h1>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 mt-1">
+                  <span className="text-sm font-medium text-secondary-600 dark:text-secondary-300">
+                    {getTableTypeDisplayName(tableType)}
+                  </span>
+                  <span className="hidden sm:inline w-1 h-1 bg-secondary-400 rounded-full"></span>
+                  <span className="text-sm text-secondary-500 dark:text-secondary-400">Enterprise Brand Management</span>
+                  <span className="hidden sm:inline w-1 h-1 bg-secondary-400 rounded-full"></span>
+                  <div className="flex items-center gap-1">
+                    <div className="w-2 h-2 bg-success-500 rounded-full animate-pulse-soft"></div>
+                    <span className="text-sm text-success-600 dark:text-success-400 font-medium">Connected</span>
+                  </div>
+                </div>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-                <button
-                  onClick={onLogout}
-                className="flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-white hover:bg-red-500 rounded-xl transition-all duration-200 border border-red-200"
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+              <button
+                onClick={() => setIsDarkMode(!isDarkMode)}
+                className="btn-ghost p-2 sm:p-3"
+                title={`Switch to ${isDarkMode ? 'light' : 'dark'} mode`}
+              >
+                {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              </button>
+              <button
+                onClick={onLogout}
+                className="btn-ghost text-error-600 hover:text-error-700 hover:bg-error-50 p-2 sm:p-3"
                 title="Log out"
               >
-                Log out
+                <X className="w-4 h-4" />
+                <span className="hidden sm:inline ml-2">Log out</span>
               </button>
               <button 
                 onClick={handleRefresh}
-                className="flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all duration-200"
+                className="btn-secondary p-2 sm:p-3"
                 title="Refresh data from database"
               >
                 <RefreshCw className="w-4 h-4" />
-                Refresh
+                <span className="hidden sm:inline ml-2">Refresh</span>
               </button>
               {tableType !== 'factory' && (
                 <button 
                   onClick={() => setShowAddModal(true)}
-                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-2xl hover:from-blue-600 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-200 font-medium"
+                  className="btn-primary shadow-glow hover:shadow-glow-lg p-2 sm:p-3"
                 >
                   <Plus className="w-4 h-4" />
-                  Add Record
+                  <span className="hidden sm:inline ml-2">Add Record</span>
                 </button>
               )}
             </div>
@@ -727,10 +765,17 @@ const M88DatabaseUI = ({
         </div>
       </header>
 
-      {/* Enhanced Color-Coded Column Groups Panel */}
-      <div className="max-w-7xl mx-auto px-6 -mt-4 mb-4">
-        <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-4">
-          <div className="flex flex-wrap gap-4">
+      {/* Compact Column Groups Panel */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 -mt-2 sm:-mt-4 mb-3 sm:mb-4">
+        <div className="card-elevated p-3 sm:p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+            <h2 className="text-base font-semibold text-secondary-900 dark:text-white">Column Groups</h2>
+            <div className="flex items-center gap-1.5 text-xs text-secondary-500 dark:text-secondary-400">
+              <div className="w-1.5 h-1.5 bg-success-500 rounded-full"></div>
+              <span>Organize your data view</span>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-1.5 sm:gap-2">
             {getGroupSummary()
               .filter(group => !(tableType === 'factory' && group.name === 'Flags'))
               .map(group => {
@@ -744,24 +789,35 @@ const M88DatabaseUI = ({
                         [group.name]: !prev[group.name]
                       }));
                     }}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all duration-200 ${
+                    className={`group flex items-center gap-2 px-3 py-2 rounded-xl border transition-all duration-300 ${
                       isCollapsed 
-                        ? `bg-slate-100 text-slate-600 border-slate-300 hover:bg-slate-200` 
-                        : `${group.colors.background} ${group.colors.text} ${group.colors.border} ${group.colors.hover} shadow-sm`
+                        ? `bg-secondary-50 text-secondary-600 border-secondary-200 hover:bg-secondary-100 hover:border-secondary-300` 
+                        : `${group.colors.background} ${group.colors.text} ${group.colors.border} ${group.colors.hover} shadow-soft hover:shadow-medium`
                     }`}
                   >
-                    <div className={`w-3 h-3 rounded-full ${
-                      isCollapsed ? 'bg-slate-400' : group.colors.background.replace('bg-', 'bg-').replace('-50', '-400')
+                    <div className={`w-3 h-3 rounded-full transition-all duration-200 ${
+                      isCollapsed 
+                        ? 'bg-secondary-400' 
+                        : group.colors.background.replace('bg-', 'bg-').replace('-50', '-500')
                     }`} />
-                    <span className="text-sm font-semibold">{group.name}</span>
-                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                      isCollapsed ? 'bg-white text-slate-600' : 'bg-white/80'
+                    <span className="text-xs font-semibold">{group.name}</span>
+                    <div className={`text-xs px-2 py-1 rounded-full font-medium transition-all duration-200 ${
+                      isCollapsed 
+                        ? 'bg-white text-secondary-600' 
+                        : 'bg-white/90 text-secondary-700 shadow-soft'
                     }`}>
                       {group.visibleCount}/{group.totalCount}
-                    </span>
-                    <span className="text-xs font-bold opacity-75">
+                    </div>
+                    <div className={`text-xs font-medium transition-all duration-200 ${
+                      isCollapsed ? 'text-secondary-500' : 'text-secondary-600'
+                    }`}>
                       {isCollapsed ? 'Hidden' : 'Visible'}
-                    </span>
+                    </div>
+                    <div className={`ml-0.5 transition-transform duration-200 ${
+                      isCollapsed ? 'rotate-180' : 'rotate-0'
+                    }`}>
+                      <ChevronDown className="w-3 h-3" />
+                    </div>
                   </button>
                 );
               })}
@@ -769,7 +825,7 @@ const M88DatabaseUI = ({
         </div>
       </div>
 
-      <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 sm:space-y-8">
         {/* Search and Filters */}
         <div className="space-y-6">
           <SearchBar
@@ -777,8 +833,6 @@ const M88DatabaseUI = ({
             onSearchChange={setSearchTerm}
             onToggleFilters={() => setShowFilters(!showFilters)}
             showFilters={showFilters}
-            recordCount={processedData.length}
-            onRefresh={loadData}
           />
           
           {showFilters && (
@@ -807,32 +861,56 @@ const M88DatabaseUI = ({
           )}
         </div>
 
-        {/* Simple Filter Summary */}
+        {/* Professional Filter Summary */}
         {(searchTerm || filters.status || filters.brand_classification || filters.terms_of_shipment) && (
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+          <div className="card border-warning-200 bg-warning-50/50 p-4 mb-6 animate-slide-down">
             <div className="flex items-center justify-between">
-              <div className="flex flex-wrap gap-2 text-sm">
-                <span className="font-medium text-amber-800">Active Filters:</span>
-                {searchTerm && <span className="text-amber-700">Search: "{searchTerm}"</span>}
-                {filters.status && <span className="text-amber-700">Status: {filters.status}</span>}
-                {filters.brand_classification && <span className="text-amber-700">Class: {filters.brand_classification}</span>}
-                {filters.terms_of_shipment && <span className="text-amber-700">Terms: {filters.terms_of_shipment}</span>}
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-warning-100 rounded-lg flex items-center justify-center">
+                  <Filter className="w-4 h-4 text-warning-600" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-warning-800">Active Filters</h3>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {searchTerm && (
+                      <span className="badge-warning">
+                        Search: "{searchTerm}"
+                      </span>
+                    )}
+                    {filters.status && (
+                      <span className="badge-warning">
+                        Status: {filters.status}
+                      </span>
+                    )}
+                    {filters.brand_classification && (
+                      <span className="badge-warning">
+                        Class: {filters.brand_classification}
+                      </span>
+                    )}
+                    {filters.terms_of_shipment && (
+                      <span className="badge-warning">
+                        Terms: {filters.terms_of_shipment}
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
               <button 
                 onClick={() => {
                   setSearchTerm('');
                   setFilters({ status: '', brand_classification: '', terms_of_shipment: '' });
                 }}
-                className="text-amber-600 hover:text-amber-800 text-sm font-medium"
+                className="btn-ghost text-warning-600 hover:text-warning-700 hover:bg-warning-100"
               >
-                Clear All ×
+                <X className="w-4 h-4" />
+                Clear All
               </button>
             </div>
           </div>
         )}
 
-        {/* Data Table */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200/50 overflow-hidden">
+        {/* Professional Data Table */}
+        <div className="card-elevated overflow-hidden">
           <DataTable
             data={sortedData}
             columns={columns.filter(col => columnVisibility[col.key])}

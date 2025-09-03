@@ -1,12 +1,10 @@
-import { Search, Filter, RefreshCw } from 'lucide-react';
+import { Search, Filter, X } from 'lucide-react';
 
 interface SearchBarProps {
   searchTerm: string;
   onSearchChange: (value: string) => void;
   onToggleFilters: () => void;
   showFilters: boolean;
-  recordCount: number;
-  onRefresh: () => void;
 }
 
 export const SearchBar = ({
@@ -14,58 +12,53 @@ export const SearchBar = ({
   onSearchChange,
   onToggleFilters,
   showFilters,
-  recordCount,
-  onRefresh
 }: SearchBarProps) => (
-  <div className="space-y-4">
-    <div className="flex flex-col sm:flex-row gap-4">
+  <div className="space-y-6">
+    <div className="flex flex-col lg:flex-row gap-4">
       <div className="relative flex-1">
-        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
-        <input
-          type="text"
-          placeholder="Search brands, status, classification..."
-          value={searchTerm}
-          onChange={(e) => onSearchChange(e.target.value)}
-          className="w-full pl-12 pr-16 py-2 bg-white border border-slate-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-400 transition-all duration-200 text-slate-900 placeholder-slate-500 shadow-sm"
-        />
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-secondary-400 w-5 h-5" />
+          <input
+            type="text"
+            placeholder="Search brands, status, classification, contacts..."
+            value={searchTerm}
+            onChange={(e) => onSearchChange(e.target.value)}
+            className="input-field pl-12 pr-12 py-4 text-base shadow-soft focus:shadow-medium"
+          />
+          {searchTerm && (
+            <button
+              aria-label="Clear search"
+              onClick={() => onSearchChange('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-secondary-400 hover:text-secondary-600 p-1.5 rounded-lg hover:bg-secondary-100 transition-all duration-200"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
         {searchTerm && (
-          <button
-            aria-label="Clear search"
-            onClick={() => onSearchChange('')}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 rounded hover:bg-slate-100"
-          >
-            ✕
-          </button>
+          <div className="mt-2 text-sm text-secondary-500">
+            Searching for: <span className="font-medium text-secondary-700">"{searchTerm}"</span>
+          </div>
         )}
       </div>
       <div className="flex gap-3">
         <button
           onClick={onToggleFilters}
-          className={`flex items-center gap-2 px-6 py-2 rounded-2xl border font-medium transition-all duration-200 ${
+          className={`flex items-center gap-3 px-6 py-4 rounded-2xl border-2 font-semibold transition-all duration-300 ${
             showFilters 
-              ? 'bg-blue-500 text-white border-blue-500 shadow-lg shadow-blue-500/25' 
-              : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+              ? 'btn-primary shadow-glow' 
+              : 'btn-secondary'
           }`}
         >
-          <Filter className="w-4 h-4" />
-          Filters
-        </button>
-      </div>
-    </div>
-    <div className="flex items-center justify-between text-sm text-slate-500">
-      <span>{recordCount} records found</span>
-      <div className="flex items-center gap-4">
-        <button 
-          onClick={onRefresh}
-          className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors"
-        >
-          <RefreshCw className="w-4 h-4" />
-          Refresh
+          <Filter className="w-5 h-5" />
+          <span>Filters</span>
+          {showFilters && (
+            <div className="w-2 h-2 bg-white rounded-full animate-pulse-soft"></div>
+          )}
         </button>
       </div>
     </div>
   </div>
 );
-
 
 export default SearchBar;

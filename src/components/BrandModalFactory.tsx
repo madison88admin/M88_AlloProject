@@ -44,47 +44,57 @@ const BrandModalFactory: React.FC<BrandModalFactoryProps> = ({ brand, brandData,
   );
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
-        {/* Header */}
-        <div className="bg-slate-900 px-6 py-5 relative">
+    <div className="modal-overlay">
+      <div className="modal-content max-w-4xl w-full">
+        {/* Professional Header */}
+        <div className="bg-gradient-to-r from-success-600 to-success-700 px-6 py-6 relative">
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors duration-200"
+            className="absolute top-4 right-4 text-white/80 hover:text-white hover:bg-white/10 p-2 rounded-xl transition-all duration-200"
             aria-label="Close"
           >
             <X className="w-6 h-6" />
           </button>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center">
-              <Building className="w-5 h-5 text-white" />
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-soft">
+              <Building className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-white">{brand}</h2>
-              <p className="text-slate-400 text-sm">Contact Directory</p>
+              <h2 className="text-2xl font-bold text-white">{brand}</h2>
+              <div className="flex items-center gap-2 mt-1">
+                <div className="w-2 h-2 bg-white/60 rounded-full animate-pulse-soft"></div>
+                <p className="text-white/90 text-sm font-medium">Contact Directory</p>
+              </div>
             </div>
           </div>
         </div>
         
-        {/* Content */}
+        {/* Professional Content */}
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
           {assignedContacts.length > 0 ? (
             <>
               {/* Assigned Contacts */}
               <div className="mb-8">
-                <div className="flex items-center gap-2 mb-4">
-                  <Users className="w-4 h-4 text-slate-600" />
-                  <h3 className="text-base font-medium text-slate-900">
-                    Assigned Contacts ({assignedContacts.length})
-                  </h3>
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-8 h-8 bg-success-100 rounded-lg flex items-center justify-center">
+                    <Users className="w-4 h-4 text-success-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-secondary-900">
+                      Assigned Contacts
+                    </h3>
+                    <p className="text-sm text-secondary-500">
+                      {assignedContacts.length} contact{assignedContacts.length !== 1 ? 's' : ''} assigned to this brand
+                    </p>
+                  </div>
                 </div>
-                <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {assignedContacts.map((field) => (
-                    <div key={field.key} className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                      <div className="text-xs font-medium text-slate-600 uppercase tracking-wide mb-2">
+                    <div key={field.key} className="card-interactive p-5">
+                      <div className="text-xs font-semibold text-secondary-500 uppercase tracking-wider mb-3">
                         {field.label}
                       </div>
-                      <div className="text-slate-900 font-medium">
+                      <div className="text-secondary-900 font-semibold text-base">
                         {formatContactName(brandData[field.key])}
                       </div>
                     </div>
@@ -95,19 +105,26 @@ const BrandModalFactory: React.FC<BrandModalFactoryProps> = ({ brand, brandData,
               {/* Unassigned Positions */}
               {unassignedContacts.length > 0 && (
                 <div>
-                  <div className="flex items-center gap-2 mb-4">
-                    <Users className="w-4 h-4 text-slate-600" />
-                    <h3 className="text-base font-medium text-slate-900">
-                      Unassigned Positions ({unassignedContacts.length})
-                    </h3>
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-8 h-8 bg-warning-100 rounded-lg flex items-center justify-center">
+                      <Users className="w-4 h-4 text-warning-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-secondary-900">
+                        Unassigned Positions
+                      </h3>
+                      <p className="text-sm text-secondary-500">
+                        {unassignedContacts.length} position{unassignedContacts.length !== 1 ? 's' : ''} available for assignment
+                      </p>
+                    </div>
                   </div>
-                  <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                     {unassignedContacts.map((field) => (
-                      <div key={field.key} className="bg-slate-50 rounded-lg p-4 border border-slate-200 opacity-60">
-                        <div className="text-xs font-medium text-slate-600 uppercase tracking-wide mb-2">
+                      <div key={field.key} className="bg-secondary-50 rounded-xl p-4 border border-secondary-200 opacity-75">
+                        <div className="text-xs font-semibold text-secondary-500 uppercase tracking-wider mb-3">
                           {field.label}
                         </div>
-                        <div className="text-slate-500 font-medium">
+                        <div className="text-secondary-400 font-medium">
                           Not assigned
                         </div>
                       </div>
@@ -117,23 +134,30 @@ const BrandModalFactory: React.FC<BrandModalFactoryProps> = ({ brand, brandData,
               )}
             </>
           ) : (
-            /* Empty State */
-            <div className="text-center py-16">
-              <Users className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-slate-600 mb-2">No Contacts Assigned</h3>
-              <p className="text-slate-500 mb-8">
-                This brand doesn't have any contact persons assigned yet.
+            /* Professional Empty State */
+            <div className="text-center py-20">
+              <div className="relative mb-6">
+                <div className="w-20 h-20 bg-gradient-to-br from-secondary-100 to-secondary-200 rounded-3xl flex items-center justify-center shadow-soft mx-auto">
+                  <Users className="w-10 h-10 text-secondary-400" />
+                </div>
+                <div className="absolute -top-2 -right-2 w-6 h-6 bg-warning-100 rounded-full flex items-center justify-center">
+                  <span className="text-warning-600 text-xs font-bold">0</span>
+                </div>
+              </div>
+              <h3 className="text-xl font-semibold text-secondary-900 mb-3">No Contacts Assigned</h3>
+              <p className="text-secondary-500 mb-8 max-w-md mx-auto leading-relaxed">
+                This brand doesn't have any contact persons assigned yet. Contact assignments help organize responsibilities and communication.
               </p>
               
-              <div className="mt-8">
-                <h4 className="text-base font-medium text-slate-700 mb-4">Available Positions:</h4>
-                <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+              <div className="mt-12">
+                <h4 className="text-lg font-semibold text-secondary-700 mb-6">Available Positions</h4>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 max-w-4xl mx-auto">
                   {contactFields.map((field) => (
-                    <div key={field.key} className="bg-slate-50 rounded-lg p-4 border border-slate-200 opacity-60">
-                      <div className="text-xs font-medium text-slate-600 uppercase tracking-wide mb-2">
+                    <div key={field.key} className="bg-secondary-50 rounded-xl p-4 border border-secondary-200 opacity-75">
+                      <div className="text-xs font-semibold text-secondary-500 uppercase tracking-wider mb-3">
                         {field.label}
                       </div>
-                      <div className="text-slate-500 font-medium">
+                      <div className="text-secondary-400 font-medium">
                         Available
                       </div>
                     </div>

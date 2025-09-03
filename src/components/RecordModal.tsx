@@ -86,34 +86,42 @@ export const RecordModal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200/50 w-full max-w-2xl max-h-[90vh] overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-slate-200">
-          <h2 className="text-xl font-semibold text-slate-900">{title}</h2>
+    <div className="modal-overlay">
+      <div className="modal-content w-full max-w-3xl">
+        {/* Professional Header */}
+        <div className="flex items-center justify-between p-6 border-b border-secondary-200 bg-gradient-to-r from-secondary-50 to-secondary-100/50">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-soft">
+              <Save className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold text-secondary-900">{title}</h2>
+              <p className="text-sm text-secondary-500">Fill in the details below</p>
+            </div>
+          </div>
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all duration-200"
+            className="p-2 text-secondary-400 hover:text-secondary-600 hover:bg-secondary-100 rounded-xl transition-all duration-200"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+        {/* Professional Form */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-8 overflow-y-auto max-h-[calc(90vh-140px)]">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {columns.map(col => (
-              <div key={col.key} className={col.key === 'all_brand' ? 'md:col-span-2' : ''}>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+              <div key={col.key} className={`space-y-3 ${col.key === 'all_brand' ? 'md:col-span-2' : ''}`}>
+                <label className="block text-sm font-semibold text-secondary-700">
                   {col.label}
-                  {col.required && <span className="text-red-500 ml-1">*</span>}
+                  {col.required && <span className="text-error-500 ml-1">*</span>}
                 </label>
                 
                 {col.type === 'select' ? (
                   <select
                     value={formData[col.key] || ''}
                     onChange={(e) => setFormData(prev => ({ ...prev, [col.key]: e.target.value }))}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all duration-200"
+                    className="input-field"
                     required={col.required}
                   >
                     <option value="">Select {col.label}</option>
@@ -122,38 +130,38 @@ export const RecordModal = ({
                     ))}
                   </select>
                 ) : col.type === 'boolean' ? (
-                  <div className="flex items-center">
+                  <div className="flex items-center gap-3 p-4 bg-secondary-50 rounded-xl border border-secondary-200">
                     <input
                       type="checkbox"
                       checked={formData[col.key] || false}
                       onChange={(e) => setFormData(prev => ({ ...prev, [col.key]: e.target.checked }))}
-                      className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-2 focus:ring-blue-500/20"
+                      className="w-5 h-5 text-primary-600 border-secondary-300 rounded focus:ring-2 focus:ring-primary-500/20"
                     />
-                    <span className="ml-2 text-sm text-slate-600">Yes</span>
+                    <span className="text-sm font-medium text-secondary-700">Yes</span>
                   </div>
                 ) : col.type === 'yes_blank' ? (
-                  <div className="flex items-center gap-4">
-                    <label className="flex items-center cursor-pointer">
+                  <div className="flex items-center gap-6 p-4 bg-secondary-50 rounded-xl border border-secondary-200">
+                    <label className="flex items-center cursor-pointer gap-3">
                       <input
                         type="radio"
                         name={col.key}
                         value=""
                         checked={formData[col.key] === '' || !formData[col.key]}
                         onChange={(e) => setFormData(prev => ({ ...prev, [col.key]: e.target.value }))}
-                        className="w-4 h-4 text-slate-400 border-slate-300 focus:ring-2 focus:ring-slate-500/20"
+                        className="w-4 h-4 text-secondary-400 border-secondary-300 focus:ring-2 focus:ring-secondary-500/20"
                       />
-                      <span className="ml-2 text-sm text-slate-600">Blank</span>
+                      <span className="text-sm font-medium text-secondary-600">Blank</span>
                     </label>
-                    <label className="flex items-center cursor-pointer">
+                    <label className="flex items-center cursor-pointer gap-3">
                       <input
                         type="radio"
                         name={col.key}
                         value="Yes"
                         checked={formData[col.key] === 'Yes'}
                         onChange={(e) => setFormData(prev => ({ ...prev, [col.key]: e.target.value }))}
-                        className="w-4 h-4 text-green-600 border-slate-300 focus:ring-2 focus:ring-green-500/20"
+                        className="w-4 h-4 text-success-600 border-secondary-300 focus:ring-2 focus:ring-success-500/20"
                       />
-                      <span className="ml-2 text-sm text-slate-600">Yes</span>
+                      <span className="text-sm font-medium text-secondary-600">Yes</span>
                     </label>
                   </div>
                 ) : (
@@ -161,7 +169,7 @@ export const RecordModal = ({
                     type="text"
                     value={formData[col.key] || ''}
                     onChange={(e) => setFormData(prev => ({ ...prev, [col.key]: e.target.value }))}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all duration-200"
+                    className="input-field"
                     required={col.required}
                     placeholder={`Enter ${col.label.toLowerCase()}`}
                   />
@@ -170,12 +178,12 @@ export const RecordModal = ({
             ))}
           </div>
 
-          {/* Actions */}
-          <div className="flex gap-4 pt-6 border-t border-slate-200">
+          {/* Professional Actions */}
+          <div className="flex gap-4 pt-8 border-t border-secondary-200">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-6 py-3 text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition-all duration-200"
+              className="btn-secondary flex-1"
               disabled={loading}
             >
               Cancel
@@ -183,7 +191,7 @@ export const RecordModal = ({
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50"
+              className="btn-primary flex-1 shadow-glow hover:shadow-glow-lg"
             >
               <Save className="w-4 h-4" />
               {loading ? 'Saving...' : 'Save Record'}
