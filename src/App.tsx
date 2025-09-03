@@ -174,7 +174,7 @@ const M88DatabaseUI = ({
     { key: 'all_brand', label: 'All Brand', type: 'text', required: true, width: '150px' },
     { key: 'brand_visible_to_factory', label: 'Brands', type: 'text', width: '150px' },
     { key: 'brand_classification', label: 'Brand Classification', type: 'select', options: ['Top', 'Growth', 'Emerging', 'Maintain', 'Divest', 'Early Engagement', 'Growth/Divest'], width: '150px' },
-    { key: 'status', label: 'Status', type: 'select', options: ['Active', 'Inactive', 'In Development', 'On hold'], width: '150px' },
+    { key: 'status', label: 'Status', type: 'select', options: ['Active', 'In Development'], width: '150px' },
     { key: 'terms_of_shipment', label: 'Terms', type: 'select', options: ['FOB', 'LDP'], width: '120px' },
     { key: 'lead_pbd', label: 'Lead PBD', type: 'text', width: '150px' },
     { key: 'support_pbd', label: 'Support PBD', type: 'text', width: '150px' },
@@ -701,28 +701,42 @@ const M88DatabaseUI = ({
   return (
     <div className="min-h-screen bg-gradient-to-br from-secondary-50 via-primary-50/30 to-brand-indigo/5 dark:from-secondary-900 dark:via-secondary-800/50 dark:to-secondary-900">
       {/* Professional Header */}
-      <header className="glass border-b border-secondary-200/50 sticky top-0 z-40 backdrop-blur-md">
+      <header className="sticky top-0 z-40 backdrop-blur-md" style={{ backgroundColor: isDarkMode ? '#1e3a5f' : '#3D75A3' }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div className="flex items-center space-x-4 sm:space-x-6">
               <div className="relative">
-                <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-primary-500 via-primary-600 to-brand-indigo rounded-2xl flex items-center justify-center shadow-medium">
-                  <Building2 className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-2xl flex items-center justify-center shadow-medium border border-secondary-200 overflow-hidden">
+                  {/* Replace with your actual logo image */}
+                  <img 
+                    src="/m88logo.jpg" 
+                    alt="M88 Logo" 
+                    className="w-12 h-12 sm:w-16 sm:h-16 object-contain"
+                    onError={(e) => {
+                      // Fallback to icon if image fails to load
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      const parent = target.parentElement;
+                      if (parent) {
+                        parent.innerHTML = '<svg class="w-6 h-6 sm:w-7 sm:h-7 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>';
+                      }
+                    }}
+                  />
                 </div>
                 <div className="absolute -top-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-success-500 rounded-full border-2 border-white animate-pulse-soft"></div>
               </div>
               <div className="min-w-0 flex-1">
-                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-secondary-900 dark:text-white tracking-tight truncate">M88 Account Allocation</h1>
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white tracking-tight truncate">Account Allocation</h1>
                 <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 mt-1">
-                  <span className="text-sm font-medium text-secondary-600 dark:text-secondary-300">
+                  <span className={`text-sm font-medium ${isDarkMode ? 'text-blue-200' : 'text-blue-100'}`}>
                     {getTableTypeDisplayName(tableType)}
                   </span>
-                  <span className="hidden sm:inline w-1 h-1 bg-secondary-400 rounded-full"></span>
-                  <span className="text-sm text-secondary-500 dark:text-secondary-400">Enterprise Brand Management</span>
-                  <span className="hidden sm:inline w-1 h-1 bg-secondary-400 rounded-full"></span>
+                  <span className={`hidden sm:inline w-1 h-1 ${isDarkMode ? 'bg-blue-300' : 'bg-blue-200'} rounded-full`}></span>
+                  <span className={`text-sm ${isDarkMode ? 'text-blue-200' : 'text-blue-100'}`}>Enterprise Brand Management</span>
+                  <span className={`hidden sm:inline w-1 h-1 ${isDarkMode ? 'bg-blue-300' : 'bg-blue-200'} rounded-full`}></span>
                   <div className="flex items-center gap-1">
-                    <div className="w-2 h-2 bg-success-500 rounded-full animate-pulse-soft"></div>
-                    <span className="text-sm text-success-600 dark:text-success-400 font-medium">Connected</span>
+                    <div className={`w-2 h-2 ${isDarkMode ? 'bg-green-300' : 'bg-green-400'} rounded-full animate-pulse-soft`}></div>
+                    <span className={`text-sm ${isDarkMode ? 'text-green-200' : 'text-green-300'} font-medium`}>Connected</span>
                   </div>
                 </div>
               </div>
@@ -730,14 +744,14 @@ const M88DatabaseUI = ({
             <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
               <button
                 onClick={() => setIsDarkMode(!isDarkMode)}
-                className="btn-ghost p-2 sm:p-3"
+                className={`${isDarkMode ? 'text-blue-200 hover:text-white hover:bg-blue-700' : 'text-blue-100 hover:text-white hover:bg-blue-600'} p-2 sm:p-3 rounded-lg transition-all duration-200`}
                 title={`Switch to ${isDarkMode ? 'light' : 'dark'} mode`}
               >
                 {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
               </button>
               <button
                 onClick={onLogout}
-                className="btn-ghost text-error-600 hover:text-error-700 hover:bg-error-50 p-2 sm:p-3"
+                className={`${isDarkMode ? 'text-red-300 hover:text-red-200 hover:bg-red-700/20' : 'text-red-200 hover:text-red-100 hover:bg-red-600/20'} p-2 sm:p-3 rounded-lg transition-all duration-200`}
                 title="Log out"
               >
                 <X className="w-4 h-4" />
@@ -745,7 +759,7 @@ const M88DatabaseUI = ({
               </button>
               <button 
                 onClick={handleRefresh}
-                className="btn-secondary p-2 sm:p-3"
+                className={`${isDarkMode ? 'bg-blue-700 text-white hover:bg-blue-600' : 'bg-blue-600 text-white hover:bg-blue-500'} p-2 sm:p-3 rounded-lg transition-all duration-200`}
                 title="Refresh data from database"
               >
                 <RefreshCw className="w-4 h-4" />
@@ -754,7 +768,7 @@ const M88DatabaseUI = ({
               {tableType !== 'factory' && (
                 <button 
                   onClick={() => setShowAddModal(true)}
-                  className="btn-primary shadow-glow hover:shadow-glow-lg p-2 sm:p-3"
+                  className={`${isDarkMode ? 'bg-white text-blue-700 hover:bg-blue-100' : 'bg-white text-blue-600 hover:bg-blue-50'} shadow-lg hover:shadow-xl p-2 sm:p-3 rounded-lg transition-all duration-200`}
                 >
                   <Plus className="w-4 h-4" />
                   <span className="hidden sm:inline ml-2">Add Record</span>

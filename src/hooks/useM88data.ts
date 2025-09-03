@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import type { DataRecord, Filters, Analytics } from '../types';
-import { fetchM88Data, updateM88Record, createM88Record, deleteM88Record, refreshDataFromDatabase } from '../services/api';
+import { fetchM88Data, updateM88Record, createM88Record, deleteM88Record } from '../services/api';
 
 export const useM88Data = () => {
   const [data, setData] = useState<DataRecord[]>([]);
@@ -109,7 +109,32 @@ export const useM88Data = () => {
   };
 
   const getUniqueValues = (key: string): string[] => {
-    return [...new Set(data.map(row => row[key]).filter(Boolean))].sort();
+    // For status field, use predefined options to avoid duplicates
+    if (key === 'status') {
+      return ['Active', 'In Development'];
+    }
+    
+    // For other fields, extract unique values from data with normalization
+    const uniqueValues = [...new Set(
+      data.map(row => {
+        const value = row[key];
+        if (!value) return null;
+        
+        // Normalize the value: trim whitespace, handle case variations
+        const normalized = String(value).trim();
+        
+        // Special handling for status-like fields
+        if (key === 'status' || key.includes('status')) {
+          const lower = normalized.toLowerCase();
+          if (lower.includes('active')) return 'Active';
+          if (lower.includes('development') || lower.includes('deploy')) return 'In Development';
+        }
+        
+        return normalized;
+      }).filter((value): value is string => Boolean(value))
+    )].sort();
+    
+    return uniqueValues;
   };
 
   return {
