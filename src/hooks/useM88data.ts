@@ -9,7 +9,7 @@ interface UserInfo {
   type: 'company' | 'factory' | 'admin';
 }
 
-export const useM88Data = (user?: UserInfo) => {
+export const useM88Data = (user?: UserInfo, showInactiveRecords?: boolean) => {
   const [data, setData] = useState<DataRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -175,7 +175,7 @@ export const useM88Data = (user?: UserInfo) => {
   const getUniqueValues = (key: string): string[] => {
     // For status field, use predefined options to avoid duplicates
     if (key === 'status') {
-      return ['Active', 'In Development'];
+      return showInactiveRecords ? ['Active', 'In Development', 'Inactive'] : ['Active', 'In Development'];
     }
     
     // For other fields, extract unique values from data with normalization

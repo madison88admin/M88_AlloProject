@@ -5,18 +5,21 @@ import { supabase } from '../lib/supabaseClient';
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // Store the working table name globally after discovery
-let WORKING_TABLE_NAME = 'M88-Account_Allocation';
+let WORKING_TABLE_NAME = 'M88-NEWDATA';
+let TABLE_DISCOVERED = false;
+let TABLE_COLUMNS: string[] = [];
 
 // Function to discover the correct table name
 const discoverTableName = async (): Promise<string> => {
   console.log('🔍 Discovering correct table name...');
   
   const possibleTableNames = [
-    'M88-Account_Allocation',
-    'm88_account_allocation', 
-    'M88_Account_Allocation',
-    'm88-account-allocation',
-    'M88AccountAllocation'
+    'M88-NEWDATA',
+    //'M88-Account_Allocation',
+    //'m88_account_allocation', 
+    //'M88_Account_Allocation',
+    //'m88-account-allocation',
+    //'M88AccountAllocation'
   ];
   
   for (const tableName of possibleTableNames) {
@@ -30,6 +33,7 @@ const discoverTableName = async (): Promise<string> => {
       if (data && !error) {
         console.log(`✅ Found working table: ${tableName}`);
         WORKING_TABLE_NAME = tableName;
+        TABLE_DISCOVERED = true;
         return tableName;
       }
     } catch (err) {
@@ -38,7 +42,43 @@ const discoverTableName = async (): Promise<string> => {
   }
   
   console.warn('⚠️ No working table found, using default');
+  TABLE_DISCOVERED = true;
   return WORKING_TABLE_NAME;
+};
+
+// Function to discover table columns
+const discoverTableColumns = async (): Promise<string[]> => {
+  if (TABLE_COLUMNS.length > 0) {
+    return TABLE_COLUMNS;
+  }
+  
+  try {
+    console.log('🔍 Discovering table columns...');
+    const { data } = await supabase
+      .from(WORKING_TABLE_NAME)
+      .select('*')
+      .limit(1);
+    
+    if (data && data.length > 0) {
+      TABLE_COLUMNS = Object.keys(data[0]);
+      console.log('✅ Table columns discovered:', TABLE_COLUMNS);
+    }
+    
+    return TABLE_COLUMNS;
+  } catch (err) {
+    console.error('❌ Error discovering table columns:', err);
+    return [];
+  }
+};
+
+// Ensure table is discovered before any operation
+const ensureTableDiscovered = async (): Promise<void> => {
+  if (!TABLE_DISCOVERED) {
+    await discoverTableName();
+  }
+  if (TABLE_COLUMNS.length === 0) {
+    await discoverTableColumns();
+  }
 };
 
 export const fetchM88Data = async (): Promise<DataRecord[]> => {
@@ -67,7 +107,13 @@ export const fetchM88Data = async (): Promise<DataRecord[]> => {
       }
     }
     
-    return data || [];
+    // Generate IDs for records that don't have them (for tables without auto-increment ID)
+    const dataWithIds = (data || []).map((record, index) => ({
+      ...record,
+      id: record.id || (Math.floor(Math.random() * 1000000) + index + 1) // Generate smaller ID if missing
+    }));
+    
+    return dataWithIds;
 
   } catch (err) {
     console.error('❌ Error in fetchM88Data:', err);
@@ -77,8 +123,8 @@ export const fetchM88Data = async (): Promise<DataRecord[]> => {
 
 // Helper function to prepare update data from a record
 const prepareUpdateData = (record: DataRecord) => {
-  // Extract standard fields (excluding id, created_at, updated_at)
-  const standardFields = {
+  // Get all possible fields from the record
+  const allFields = {
     all_brand: record.all_brand,
     brand_visible_to_factory: record.brand_visible_to_factory,
     brand_classification: record.brand_classification,
@@ -122,49 +168,170 @@ const prepareUpdateData = (record: DataRecord) => {
     fa_korea: record.fa_korea,
     fa_singfore: record.fa_singfore,
     fa_heads: record.fa_heads,
-    updated_at: new Date().toISOString()
+    wuxi_trims_coordinator: record.wuxi_trims_coordinator,
+    wuxi_label_coordinator: record.wuxi_label_coordinator,
+    singfore_trims_coordinator: record.singfore_trims_coordinator,
+    singfore_label_coordinator: record.singfore_label_coordinator,
+    headsup_trims_coordinator: record.headsup_trims_coordinator,
+    headsup_label_coordinator: record.headsup_label_coordinator,
+    hz_pt_ujump_trims_coordinator: record.hz_pt_ujump_trims_coordinator,
+    hz_pt_ujump_label_coordinator: record.hz_pt_ujump_label_coordinator,
+    koreamel_trims_coordinator: record.koreamel_trims_coordinator,
+    koreamel_label_coordinator: record.koreamel_label_coordinator,
+    // Only include timestamp fields if they exist in the table
+    ...(TABLE_COLUMNS.includes('updated_at') && { updated_at: new Date().toISOString() }),
+    ...(TABLE_COLUMNS.includes('created_at') && { created_at: record.created_at || new Date().toISOString() })
   };
 
-  // Include custom_fields if it exists
-  if (record.custom_fields) {
+  // Filter out fields that don't exist in the table
+  const filteredFields = Object.entries(allFields).reduce((acc, [key, value]) => {
+    if (TABLE_COLUMNS.includes(key) && value !== undefined) {
+      acc[key] = value;
+    }
+    return acc;
+  }, {} as Record<string, any>);
+
+  // Include custom_fields if it exists and the table supports it
+  if (record.custom_fields && TABLE_COLUMNS.includes('custom_fields')) {
     return {
-      ...standardFields,
+      ...filteredFields,
       custom_fields: record.custom_fields
     };
   }
 
-  return standardFields;
+  return filteredFields;
+};
+
+// Helper function to prepare insert data from a record
+const prepareInsertData = (record: Omit<DataRecord, 'id'>) => {
+  // Get all possible fields from the record
+  const allFields = {
+    all_brand: record.all_brand,
+    brand_visible_to_factory: record.brand_visible_to_factory,
+    brand_classification: record.brand_classification,
+    status: record.status,
+    terms_of_shipment: record.terms_of_shipment,
+    lead_pbd: record.lead_pbd,
+    support_pbd: record.support_pbd,
+    td: record.td,
+    nyo_planner: record.nyo_planner,
+    indo_m88_md: record.indo_m88_md,
+    m88_qa: record.m88_qa,
+    mlo_planner: record.mlo_planner,
+    mlo_logistic: record.mlo_logistic,
+    mlo_purchasing: record.mlo_purchasing,
+    mlo_costing: record.mlo_costing,
+    wuxi_moretti: record.wuxi_moretti,
+    hz_u_jump: record.hz_u_jump,
+    pt_u_jump: record.pt_u_jump,
+    korea_mel: record.korea_mel,
+    singfore: record.singfore,
+    heads_up: record.heads_up,
+    hz_pt_u_jump_senior_md: record.hz_pt_u_jump_senior_md,
+    pt_ujump_local_md: record.pt_ujump_local_md,
+    hz_u_jump_shipping: record.hz_u_jump_shipping,
+    pt_ujump_shipping: record.pt_ujump_shipping,
+    wuxi_jump_senior_md: record.wuxi_jump_senior_md,
+    wuxi_local_md: record.wuxi_local_md,
+    wuxi_shipping: record.wuxi_shipping,
+    singfore_jump_senior_md: record.singfore_jump_senior_md,
+    singfore_local_md: record.singfore_local_md,
+    singfore_shipping: record.singfore_shipping,
+    koreamel_jump_senior_md: record.koreamel_jump_senior_md,
+    koreamel_local_md: record.koreamel_local_md,
+    koreamel_shipping: record.koreamel_shipping,
+    headsup_senior_md: record.headsup_senior_md,
+    headsup_local_md: record.headsup_local_md,
+    headsup_shipping: record.headsup_shipping,
+    fa_wuxi: record.fa_wuxi,
+    fa_hz: record.fa_hz,
+    fa_pt: record.fa_pt,
+    fa_korea: record.fa_korea,
+    fa_singfore: record.fa_singfore,
+    fa_heads: record.fa_heads,
+    wuxi_trims_coordinator: record.wuxi_trims_coordinator,
+    wuxi_label_coordinator: record.wuxi_label_coordinator,
+    singfore_trims_coordinator: record.singfore_trims_coordinator,
+    singfore_label_coordinator: record.singfore_label_coordinator,
+    headsup_trims_coordinator: record.headsup_trims_coordinator,
+    headsup_label_coordinator: record.headsup_label_coordinator,
+    hz_pt_ujump_trims_coordinator: record.hz_pt_ujump_trims_coordinator,
+    hz_pt_ujump_label_coordinator: record.hz_pt_ujump_label_coordinator,
+    koreamel_trims_coordinator: record.koreamel_trims_coordinator,
+    koreamel_label_coordinator: record.koreamel_label_coordinator,
+    // Only include timestamp fields if they exist in the table
+    ...(TABLE_COLUMNS.includes('created_at') && { created_at: new Date().toISOString() }),
+    ...(TABLE_COLUMNS.includes('updated_at') && { updated_at: new Date().toISOString() })
+  };
+
+  // Filter out fields that don't exist in the table
+  const filteredFields = Object.entries(allFields).reduce((acc, [key, value]) => {
+    if (TABLE_COLUMNS.includes(key) && value !== undefined) {
+      acc[key] = value;
+    }
+    return acc;
+  }, {} as Record<string, any>);
+
+  // Include custom_fields if it exists and the table supports it
+  if (record.custom_fields && TABLE_COLUMNS.includes('custom_fields')) {
+    return {
+      ...filteredFields,
+      custom_fields: record.custom_fields
+    };
+  }
+
+  return filteredFields;
 };
 
 export const updateM88Record = async (record: DataRecord): Promise<DataRecord> => {
   console.log('🔄 API: updateM88Record called with:', record);
-  console.log('🔄 API: Using table name:', WORKING_TABLE_NAME);
-  console.log('🔄 API: Record ID:', record.id);
-  console.log('🔄 API: Record all_brand:', record.all_brand);
   
   try {
     await delay(300);
     
-    // First, let's check if the record exists and what we should use as identifier
-    console.log('🔍 API: Checking if record exists...');
+    // Ensure table is discovered first
+    await ensureTableDiscovered();
     
-    // Try to find the record first
-    const { data: existingRecords, error: findError } = await supabase
-      .from(WORKING_TABLE_NAME)
-      .select('*')
-      .eq('all_brand', record.all_brand);
+    console.log('🔄 API: Using table name:', WORKING_TABLE_NAME);
+    console.log('🔄 API: Record ID:', record.id);
+    console.log('🔄 API: Record all_brand:', record.all_brand);
     
-    console.log('🔍 API: Existing records found:', existingRecords?.length);
-    console.log('🔍 API: Find error:', findError);
-    
-    if (findError) {
-      console.error('❌ API: Error finding record:', findError);
-      throw new Error(`Failed to find record: ${findError.message}`);
+    // Check if the table has an ID column by trying to find the record by ID first
+    let useIdForUpdate = false;
+    if (record.id) {
+      console.log('🔍 API: Checking if record exists by ID...');
+      const { data: existingById, error: findByIdError } = await supabase
+        .from(WORKING_TABLE_NAME)
+        .select('*')
+        .eq('id', record.id)
+        .limit(1);
+      
+      if (existingById && existingById.length > 0 && !findByIdError) {
+        useIdForUpdate = true;
+        console.log('✅ API: Found record by ID, will update using ID');
+      }
     }
     
-    if (!existingRecords || existingRecords.length === 0) {
-      console.error('❌ API: No record found with all_brand:', record.all_brand);
-      throw new Error(`No record found with brand name: ${record.all_brand}`);
+    // If not found by ID, try by all_brand
+    if (!useIdForUpdate) {
+      console.log('🔍 API: Checking if record exists by all_brand...');
+      const { data: existingRecords, error: findError } = await supabase
+        .from(WORKING_TABLE_NAME)
+        .select('*')
+        .eq('all_brand', record.all_brand);
+      
+      console.log('🔍 API: Existing records found:', existingRecords?.length);
+      console.log('🔍 API: Find error:', findError);
+      
+      if (findError) {
+        console.error('❌ API: Error finding record:', findError);
+        throw new Error(`Failed to find record: ${findError.message}`);
+      }
+      
+      if (!existingRecords || existingRecords.length === 0) {
+        console.error('❌ API: No record found with all_brand:', record.all_brand);
+        throw new Error(`No record found with brand name: ${record.all_brand}`);
+      }
     }
     
     // Prepare the update data including custom fields
@@ -172,12 +339,12 @@ export const updateM88Record = async (record: DataRecord): Promise<DataRecord> =
     
     console.log('💾 API: Update data prepared:', updateData);
     
-    // Perform the update
+    // Perform the update using the appropriate identifier
     console.log('💾 API: Executing update...');
     const { data, error } = await supabase
       .from(WORKING_TABLE_NAME)
       .update(updateData)
-      .eq('all_brand', record.all_brand)
+      .eq(useIdForUpdate ? 'id' : 'all_brand', useIdForUpdate ? record.id : record.all_brand)
       .select()
       .single();
 
@@ -185,6 +352,12 @@ export const updateM88Record = async (record: DataRecord): Promise<DataRecord> =
 
     if (error) {
       console.error('❌ API: Update error:', error);
+      console.error('❌ Update error details:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
       throw new Error(`Failed to update record: ${error.message}`);
     }
     
@@ -241,57 +414,25 @@ export const updateM88RecordById = async (record: DataRecord): Promise<DataRecor
 export const createM88Record = async (record: Omit<DataRecord, 'id'>): Promise<DataRecord> => {
   try {
     await delay(300);
-    console.log('➕ Creating new record:', record);
     
-    // Prepare insert data including custom fields
+    // Ensure table is discovered first
+    await ensureTableDiscovered();
+    
+    console.log('➕ Creating new record:', record);
+    console.log('➕ Using table name:', WORKING_TABLE_NAME);
+    
+    // Generate a temporary ID if not provided (for tables without auto-increment ID)
+    // Use a smaller integer that fits within database integer range
+    const tempId = Math.floor(Math.random() * 1000000) + 1;
+    
+    // Prepare insert data using the helper function
     const insertData = {
-      all_brand: record.all_brand,
-      brand_visible_to_factory: record.brand_visible_to_factory,
-      brand_classification: record.brand_classification,
-      status: record.status,
-      terms_of_shipment: record.terms_of_shipment,
-      lead_pbd: record.lead_pbd,
-      support_pbd: record.support_pbd,
-      td: record.td,
-      nyo_planner: record.nyo_planner,
-      indo_m88_md: record.indo_m88_md,
-      m88_qa: record.m88_qa,
-      mlo_planner: record.mlo_planner,
-      mlo_logistic: record.mlo_logistic,
-      mlo_purchasing: record.mlo_purchasing,
-      mlo_costing: record.mlo_costing,
-      wuxi_moretti: record.wuxi_moretti,
-      hz_u_jump: record.hz_u_jump,
-      pt_u_jump: record.pt_u_jump,
-      korea_mel: record.korea_mel,
-      singfore: record.singfore,
-      heads_up: record.heads_up,
-      hz_pt_u_jump_senior_md: record.hz_pt_u_jump_senior_md,
-      pt_ujump_local_md: record.pt_ujump_local_md,
-      hz_u_jump_shipping: record.hz_u_jump_shipping,
-      pt_ujump_shipping: record.pt_ujump_shipping,
-      wuxi_jump_senior_md: record.wuxi_jump_senior_md,
-      wuxi_local_md: record.wuxi_local_md,
-      wuxi_shipping: record.wuxi_shipping,
-      singfore_jump_senior_md: record.singfore_jump_senior_md,
-      singfore_local_md: record.singfore_local_md,
-      singfore_shipping: record.singfore_shipping,
-      koreamel_jump_senior_md: record.koreamel_jump_senior_md,
-      koreamel_local_md: record.koreamel_local_md,
-      koreamel_shipping: record.koreamel_shipping,
-      headsup_senior_md: record.headsup_senior_md,
-      headsup_local_md: record.headsup_local_md,
-      headsup_shipping: record.headsup_shipping,
-      fa_wuxi: record.fa_wuxi,
-      fa_hz: record.fa_hz,
-      fa_pt: record.fa_pt,
-      fa_korea: record.fa_korea,
-      fa_singfore: record.fa_singfore,
-      fa_heads: record.fa_heads,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      ...(record.custom_fields && { custom_fields: record.custom_fields }) // Include custom fields if they exist
+      ...(TABLE_COLUMNS.includes('id') && { id: tempId }), // Only include ID if table has id column
+      ...prepareInsertData(record)
     };
+    
+    console.log('💾 API: Inserting data into table:', WORKING_TABLE_NAME);
+    console.log('💾 API: Insert data:', insertData);
     
     const { data, error } = await supabase
       .from(WORKING_TABLE_NAME)
@@ -299,8 +440,16 @@ export const createM88Record = async (record: Omit<DataRecord, 'id'>): Promise<D
       .select()
       .single();
 
+    console.log('💾 API: Insert response:', { data, error });
+
     if (error) {
       console.error('❌ Create error:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
       throw new Error(`Failed to create record: ${error.message}`);
     }
 
@@ -315,7 +464,12 @@ export const createM88Record = async (record: Omit<DataRecord, 'id'>): Promise<D
 export const deleteM88Record = async (id: number): Promise<void> => {
   try {
     await delay(300);
+    
+    // Ensure table is discovered first
+    await ensureTableDiscovered();
+    
     console.log('🗑️ Deleting record with ID:', id);
+    console.log('🗑️ Using table name:', WORKING_TABLE_NAME);
     
     // First, find the record to get the all_brand for deletion (fallback purpose)
     const { data: recordToDelete, error: findError } = await supabase

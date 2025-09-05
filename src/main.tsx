@@ -5,7 +5,7 @@ import M88DatabaseUI from './App';
 import LoginPage from './components/LoginPage';
 
 function RootApp() {
-  const [tableType, setTableType] = useState<'company' | 'factory' | null>(null);
+  const [tableType, setTableType] = useState<'company' | 'factory' | 'admin' | null>(null);
   if (!tableType) {
     return <LoginPage />;
   }

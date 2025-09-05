@@ -90,11 +90,11 @@ const normalizeYesBlankValue = (value: any): string => {
 const getFactorySpecificColumns = (username: string): string[] => {
   // Map factory usernames to their specific columns
   const factoryColumnMap: Record<string, string[]> = {
-    'factory_Wuxi': ['fa_wuxi', 'wuxi_jump_senior_md', 'wuxi_local_md', 'wuxi_shipping'],
-    'factory_PTwuuUjump': ['fa_pt', 'hz_pt_u_jump_senior_md', 'pt_ujump_local_md', 'hz_u_jump_shipping', 'pt_ujump_shipping'],
-    'factory_Singfore': ['fa_singfore', 'singfore_jump_senior_md', 'singfore_local_md', 'singfore_shipping'],
-    'factory_HeadsUp': ['fa_heads', 'headsup_senior_md', 'headsup_local_md', 'headsup_shipping'],
-    'factory_KoreaMel': ['fa_korea', 'koreamel_jump_senior_md', 'koreamel_local_md', 'koreamel_shipping']
+    'factory_Wuxi': ['fa_wuxi', 'wuxi_jump_senior_md', 'wuxi_shipping', 'wuxi_trims_coordinator', 'wuxi_label_coordinator'],
+    'factory_PTwuuUjump': ['fa_pt', 'hz_pt_u_jump_senior_md', 'hz_u_jump_shipping', 'pt_ujump_shipping', 'hz_pt_ujump_trims_coordinator', 'hz_pt_ujump_label_coordinator'],
+    'factory_Singfore': ['fa_singfore', 'singfore_jump_senior_md', 'singfore_shipping', 'singfore_trims_coordinator', 'singfore_label_coordinator'],
+    'factory_HeadsUp': ['fa_heads', 'headsup_senior_md', 'headsup_shipping', 'headsup_trims_coordinator', 'headsup_label_coordinator'],
+    'factory_KoreaMel': ['fa_korea', 'koreamel_jump_senior_md', 'koreamel_shipping', 'koreamel_trims_coordinator', 'koreamel_label_coordinator']
   };
   
   return factoryColumnMap[username] || [];
@@ -141,18 +141,6 @@ const M88DatabaseUI = ({
   onLogout: () => void; 
   user?: Account; 
 }) => {
-  const {
-    loading,
-    error,
-    loadData,
-    handleSaveRecord,
-    handleDeleteRecord,
-    handleAddRecord,
-    handleRefreshData,
-    getUniqueValues,
-    data // Add this to get the raw data
-  } = useM88Data(user);
-
   // UI State
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<Filters>({
@@ -169,6 +157,19 @@ const M88DatabaseUI = ({
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [showUserLogs, setShowUserLogs] = useState(false);
+  const [showInactiveRecords, setShowInactiveRecords] = useState(false);
+
+  const {
+    loading,
+    error,
+    loadData,
+    handleSaveRecord,
+    handleDeleteRecord,
+    handleAddRecord,
+    handleRefreshData,
+    getUniqueValues,
+    data // Add this to get the raw data
+  } = useM88Data(user, showInactiveRecords);
 
   // Define base columns for all table types
   const baseCompanyColumns: Column[] = [
@@ -194,20 +195,15 @@ const M88DatabaseUI = ({
     { key: 'singfore', label: 'Singfore', type: 'yes_blank', width: '120px' },
     { key: 'heads_up', label: 'Heads Up', type: 'yes_blank', width: '120px' },
     { key: 'hz_pt_u_jump_senior_md', label: 'HZ/PT U-JUMP Senior MD', type: 'text', width: '180px' },
-    { key: 'pt_ujump_local_md', label: 'PT UJUMP Local MD', type: 'text', width: '150px' },
     { key: 'hz_u_jump_shipping', label: 'HZ U-JUMP Shipping', type: 'text', width: '150px' },
     { key: 'pt_ujump_shipping', label: 'PT UJUMP Shipping', type: 'text', width: '150px' },
     { key: 'wuxi_jump_senior_md', label: 'Wuxi Jump Senior MD', type: 'text', width: '180px' },
-    { key: 'wuxi_local_md', label: 'Wuxi Local MD', type: 'text', width: '150px' },
     { key: 'wuxi_shipping', label: 'Wuxi Shipping', type: 'text', width: '150px' },
     { key: 'singfore_jump_senior_md', label: 'Singfore Jump Senior MD', type: 'text', width: '180px' },
-    { key: 'singfore_local_md', label: 'Singfore Local MD', type: 'text', width: '150px' },
     { key: 'singfore_shipping', label: 'Singfore Shipping', type: 'text', width: '150px' },
     { key: 'koreamel_jump_senior_md', label: 'KoreaMel Jump Senior MD', type: 'text', width: '180px' },
-    { key: 'koreamel_local_md', label: 'KoreaMel Local MD', type: 'text', width: '150px' },
     { key: 'koreamel_shipping', label: 'KoreaMel Shipping', type: 'text', width: '150px' },
     { key: 'headsup_senior_md', label: 'HeadsUp Senior MD', type: 'text', width: '180px' },
-    { key: 'headsup_local_md', label: 'HeadsUp Local MD', type: 'text', width: '150px' },
     { key: 'headsup_shipping', label: 'HeadsUp Shipping', type: 'text', width: '150px' },
     { key: 'fa_wuxi', label: 'FA Wuxi', type: 'text', width: '120px' },
     { key: 'fa_hz', label: 'FA HZ', type: 'text', width: '120px' },
@@ -215,6 +211,16 @@ const M88DatabaseUI = ({
     { key: 'fa_korea', label: 'FA Korea', type: 'text', width: '120px' },
     { key: 'fa_singfore', label: 'FA Singfore', type: 'text', width: '120px' },
     { key: 'fa_heads', label: 'FA Heads', type: 'text', width: '120px' },
+    { key: 'wuxi_trims_coordinator', label: 'Wuxi Trims Coordinator', type: 'text', width: '180px' },
+    { key: 'wuxi_label_coordinator', label: 'Wuxi Label Coordinator', type: 'text', width: '180px' },
+    { key: 'singfore_trims_coordinator', label: 'Singfore Trims Coordinator', type: 'text', width: '180px' },
+    { key: 'singfore_label_coordinator', label: 'Singfore Label Coordinator', type: 'text', width: '180px' },
+    { key: 'headsup_trims_coordinator', label: 'HeadsUp Trims Coordinator', type: 'text', width: '180px' },
+    { key: 'headsup_label_coordinator', label: 'HeadsUp Label Coordinator', type: 'text', width: '180px' },
+    { key: 'hz_pt_ujump_trims_coordinator', label: 'HZ/PT U-JUMP Trims Coordinator', type: 'text', width: '200px' },
+    { key: 'hz_pt_ujump_label_coordinator', label: 'HZ/PT U-JUMP Label Coordinator', type: 'text', width: '200px' },
+    { key: 'koreamel_trims_coordinator', label: 'KoreaMel Trims Coordinator', type: 'text', width: '180px' },
+    { key: 'koreamel_label_coordinator', label: 'KoreaMel Label Coordinator', type: 'text', width: '180px' },
   ];
 
   // Columns that should never be visible to any factory
@@ -264,22 +270,27 @@ const M88DatabaseUI = ({
   const getFactoryColumns = (username: string): Column[] => {
     const factorySpecificColumns = getFactorySpecificColumns(username);
     
-    // Debug logging
-    console.log('Factory columns debug:', {
-      username,
-      factorySpecificColumns,
-      baseCompanyColumnsCount: baseCompanyColumns.length
-    });
+    // Debug logging (commented out for production)
+    // console.log('Factory columns debug:', {
+    //   username,
+    //   factorySpecificColumns,
+    //   baseCompanyColumnsCount: baseCompanyColumns.length
+    // });
     
     // All factory assignment, flag, and new factory-specific columns
     const allFactoryColumns = [
       'fa_wuxi', 'fa_hz', 'fa_pt', 'fa_korea', 'fa_singfore', 'fa_heads',
       'wuxi_moretti', 'hz_u_jump', 'pt_u_jump', 'korea_mel', 'singfore', 'heads_up',
-      'hz_pt_u_jump_senior_md', 'pt_ujump_local_md', 'hz_u_jump_shipping', 'pt_ujump_shipping',
-      'wuxi_jump_senior_md', 'wuxi_local_md', 'wuxi_shipping',
-      'singfore_jump_senior_md', 'singfore_local_md', 'singfore_shipping',
-      'koreamel_jump_senior_md', 'koreamel_local_md', 'koreamel_shipping',
-      'headsup_senior_md', 'headsup_local_md', 'headsup_shipping'
+      'hz_pt_u_jump_senior_md', 'hz_u_jump_shipping', 'pt_ujump_shipping',
+      'wuxi_jump_senior_md', 'wuxi_shipping',
+      'singfore_jump_senior_md', 'singfore_shipping',
+      'koreamel_jump_senior_md', 'koreamel_shipping',
+      'headsup_senior_md', 'headsup_shipping',
+      'wuxi_trims_coordinator', 'wuxi_label_coordinator',
+      'singfore_trims_coordinator', 'singfore_label_coordinator',
+      'headsup_trims_coordinator', 'headsup_label_coordinator',
+      'hz_pt_ujump_trims_coordinator', 'hz_pt_ujump_label_coordinator',
+      'koreamel_trims_coordinator', 'koreamel_label_coordinator'
     ];
     
     const filteredColumns = baseCompanyColumns.filter(col => {
@@ -297,7 +308,7 @@ const M88DatabaseUI = ({
       return true;
     });
     
-    console.log('Filtered factory columns:', filteredColumns.map(col => col.key));
+    // console.log('Filtered factory columns:', filteredColumns.map(col => col.key));
     
     return filteredColumns;
   };
@@ -346,19 +357,33 @@ const M88DatabaseUI = ({
 
   // Use correct columns based on tableType and user permissions
   const columns = useMemo(() => {
+    let baseColumns;
     switch (tableType) {
       case 'company':
-        return companyColumnOrder; // Base columns + custom columns (visibility based on user type)
+        baseColumns = companyColumnOrder; // Base columns + custom columns (visibility based on user type)
+        break;
       case 'factory':
         // Use factory-specific columns based on logged-in user
-        const factoryColumns = user?.username ? getFactoryColumns(user.username) : factoryColumnOrder;
-        return factoryColumns;
+        baseColumns = user?.username ? getFactoryColumns(user.username) : factoryColumnOrder;
+        break;
       case 'admin':
-        return adminColumnOrder; // All columns + custom columns
+        baseColumns = adminColumnOrder; // All columns + custom columns
+        break;
       default:
-        return companyColumnOrder;
+        baseColumns = companyColumnOrder;
     }
-  }, [tableType, companyColumnOrder, factoryColumnOrder, adminColumnOrder, user?.username]);
+
+    // Update status column options based on showInactiveRecords toggle
+    return baseColumns.map(col => {
+      if (col.key === 'status' && (tableType === 'company' || tableType === 'admin')) {
+        return {
+          ...col,
+          options: showInactiveRecords ? ['Active', 'In Development', 'Inactive'] : ['Active', 'In Development']
+        };
+      }
+      return col;
+    });
+  }, [tableType, companyColumnOrder, factoryColumnOrder, adminColumnOrder, user?.username, showInactiveRecords]);
 
   const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>({});
 
@@ -384,27 +409,32 @@ const M88DatabaseUI = ({
     singfore: 'Flags',
     heads_up: 'Flags',
     hz_pt_u_jump_senior_md: 'Factory Assignment',
-    pt_ujump_local_md: 'Factory Assignment',
     hz_u_jump_shipping: 'Factory Assignment',
     pt_ujump_shipping: 'Factory Assignment',
     wuxi_jump_senior_md: 'Factory Assignment',
-    wuxi_local_md: 'Factory Assignment',
     wuxi_shipping: 'Factory Assignment',
     singfore_jump_senior_md: 'Factory Assignment',
-    singfore_local_md: 'Factory Assignment',
     singfore_shipping: 'Factory Assignment',
     koreamel_jump_senior_md: 'Factory Assignment',
-    koreamel_local_md: 'Factory Assignment',
     koreamel_shipping: 'Factory Assignment',
     headsup_senior_md: 'Factory Assignment',
-    headsup_local_md: 'Factory Assignment',
     headsup_shipping: 'Factory Assignment',
     fa_wuxi: 'Factory Assignment',
     fa_hz: 'Factory Assignment',
     fa_pt: 'Factory Assignment',
     fa_korea: 'Factory Assignment',
     fa_singfore: 'Factory Assignment',
-    fa_heads: 'Factory Assignment'
+    fa_heads: 'Factory Assignment',
+    wuxi_trims_coordinator: 'Factory Assignment',
+    wuxi_label_coordinator: 'Factory Assignment',
+    singfore_trims_coordinator: 'Factory Assignment',
+    singfore_label_coordinator: 'Factory Assignment',
+    headsup_trims_coordinator: 'Factory Assignment',
+    headsup_label_coordinator: 'Factory Assignment',
+    hz_pt_ujump_trims_coordinator: 'Factory Assignment',
+    hz_pt_ujump_label_coordinator: 'Factory Assignment',
+    koreamel_trims_coordinator: 'Factory Assignment',
+    koreamel_label_coordinator: 'Factory Assignment'
   }), []);
 
   // Helper function to get group colors
@@ -455,11 +485,13 @@ const M88DatabaseUI = ({
   const processedData = useMemo(() => {
     let filtered = data;
 
-    // Always exclude records with Inactive status
-    filtered = filtered.filter(row => {
-      const statusValue = String(row.status ?? '').trim().toLowerCase();
-      return statusValue !== 'inactive';
-    });
+    // Conditionally exclude records with Inactive status based on toggle
+    if (!showInactiveRecords) {
+      filtered = filtered.filter(row => {
+        const statusValue = String(row.status ?? '').trim().toLowerCase();
+        return statusValue !== 'inactive';
+      });
+    }
 
     if (searchTerm) {
       filtered = filtered.filter(row =>
@@ -487,7 +519,7 @@ const M88DatabaseUI = ({
       
       return processedRecord;
     });
-  }, [data, searchTerm, filters]);
+  }, [data, searchTerm, filters, showInactiveRecords]);
 
   // Initialize column visibility when columns change  
   useEffect(() => {
@@ -795,88 +827,106 @@ const M88DatabaseUI = ({
     <div className="min-h-screen bg-gradient-to-br from-secondary-50 via-primary-50/30 to-brand-indigo/5 dark:from-secondary-900 dark:via-secondary-800/50 dark:to-secondary-900">
       {/* Professional Header */}
       <header className="sticky top-0 z-40 backdrop-blur-md" style={{ backgroundColor: isDarkMode ? '#1e3a5f' : '#3D75A3' }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div className="flex items-center space-x-4 sm:space-x-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3">
+          <div className="flex items-center justify-between gap-4 h-14">
+            <div className="flex items-center gap-3 min-w-0 flex-1 h-full">
               <div className="relative">
-                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-2xl flex items-center justify-center shadow-medium border border-secondary-200 overflow-hidden">
-                  {/* Replace with your actual logo image */}
+                <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-medium border border-secondary-200 overflow-hidden">
                   <img 
                     src="/m88logo.jpg" 
                     alt="M88 Logo" 
-                    className="w-12 h-12 sm:w-16 sm:h-16 object-contain"
+                    className="w-10 h-10 object-contain"
                     onError={(e) => {
-                      // Fallback to icon if image fails to load
                       const target = e.target as HTMLImageElement;
                       target.style.display = 'none';
                       const parent = target.parentElement;
                       if (parent) {
-                        parent.innerHTML = '<svg class="w-6 h-6 sm:w-7 sm:h-7 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>';
+                        parent.innerHTML = '<svg class="w-10 h-10 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>';
                       }
                     }}
                   />
                 </div>
-                <div className="absolute -top-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-success-500 rounded-full border-2 border-white animate-pulse-soft"></div>
+                <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-success-500 rounded-full border-2 border-white animate-pulse-soft"></div>
               </div>
-              <div className="min-w-0 flex-1">
-                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white tracking-tight truncate">Account Allocation</h1>
-                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 mt-1">
-                  <span className={`text-sm font-medium ${isDarkMode ? 'text-blue-200' : 'text-blue-100'}`}>
+              <div className="hidden sm:flex items-center gap-3 text-sm whitespace-nowrap flex-shrink-0">
+                <h1 className="text-lg font-bold text-white tracking-tight">Account Allocation</h1>
+                <div className="flex items-center gap-2">
+                  <span className={`font-medium ${isDarkMode ? 'text-blue-200' : 'text-blue-100'}`}>
                     {getTableTypeDisplayName(tableType)}
                   </span>
-                  <span className={`hidden sm:inline w-1 h-1 ${isDarkMode ? 'bg-blue-300' : 'bg-blue-200'} rounded-full`}></span>
-                  <span className={`text-sm ${isDarkMode ? 'text-blue-200' : 'text-blue-100'}`}>Enterprise Brand Management</span>
-                  <span className={`hidden sm:inline w-1 h-1 ${isDarkMode ? 'bg-blue-300' : 'bg-blue-200'} rounded-full`}></span>
                   <div className="flex items-center gap-1">
                     <div className={`w-2 h-2 ${isDarkMode ? 'bg-green-300' : 'bg-green-400'} rounded-full animate-pulse-soft`}></div>
-                    <span className={`text-sm ${isDarkMode ? 'text-green-200' : 'text-green-300'} font-medium`}>Connected</span>
+                    <span className={`${isDarkMode ? 'text-green-200' : 'text-green-300'} font-medium`}>Connected</span>
                   </div>
                 </div>
               </div>
+              <div className="sm:hidden flex items-center min-w-0 flex-1">
+                <h1 className="text-lg font-bold text-white tracking-tight truncate">Account Allocation</h1>
+              </div>
             </div>
-            <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-              <button
-                onClick={() => setIsDarkMode(!isDarkMode)}
-                className={`${isDarkMode ? 'text-blue-200 hover:text-white hover:bg-blue-700' : 'text-blue-100 hover:text-white hover:bg-blue-600'} p-2 sm:p-3 rounded-lg transition-all duration-200`}
-                title={`Switch to ${isDarkMode ? 'light' : 'dark'} mode`}
-              >
-                {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-              </button>
+            <div className="flex items-center gap-1 sm:gap-2 lg:gap-3 justify-end h-full flex-shrink-0">
               <button
                 onClick={onLogout}
-                className={`${isDarkMode ? 'text-red-300 hover:text-red-200 hover:bg-red-700/20' : 'text-red-200 hover:text-red-100 hover:bg-red-600/20'} p-2 sm:p-3 rounded-lg transition-all duration-200`}
+                className={`${isDarkMode ? 'text-red-300 hover:text-red-200 hover:bg-red-700/20' : 'text-red-200 hover:text-red-100 hover:bg-red-600/20'} p-2 rounded-lg transition-all duration-200 flex items-center gap-2 h-10`}
                 title="Log out"
               >
                 <X className="w-4 h-4" />
-                <span className="hidden sm:inline ml-2">Log out</span>
+                <span className="hidden lg:inline">Log out</span>
               </button>
               <button 
                 onClick={handleRefresh}
-                className={`${isDarkMode ? 'bg-blue-700 text-white hover:bg-blue-600' : 'bg-blue-600 text-white hover:bg-blue-500'} p-2 sm:p-3 rounded-lg transition-all duration-200`}
+                className={`${isDarkMode ? 'bg-blue-700 text-white hover:bg-blue-600' : 'bg-blue-600 text-white hover:bg-blue-500'} p-2 rounded-lg transition-all duration-200 flex items-center gap-2 h-10`}
                 title="Refresh data from database"
               >
                 <RefreshCw className="w-4 h-4" />
-                <span className="hidden sm:inline ml-2">Refresh</span>
+                <span className="hidden lg:inline">Refresh</span>
               </button>
               {tableType !== 'factory' && (
                 <button 
                   onClick={() => setShowAddModal(true)}
-                  className={`${isDarkMode ? 'bg-white text-blue-700 hover:bg-blue-100' : 'bg-white text-blue-600 hover:bg-blue-50'} shadow-lg hover:shadow-xl p-2 sm:p-3 rounded-lg transition-all duration-200`}
+                  className={`${isDarkMode ? 'bg-white text-blue-700 hover:bg-blue-100' : 'bg-white text-blue-600 hover:bg-blue-50'} shadow-lg hover:shadow-xl p-2 rounded-lg transition-all duration-200 flex items-center gap-2 h-10`}
                 >
                   <Plus className="w-4 h-4" />
-                  <span className="hidden sm:inline ml-2">Add Record</span>
+                  <span className="hidden lg:inline">Add Record</span>
                 </button>
               )}
               {tableType === 'admin' && (
                 <button 
                   onClick={() => setShowUserLogs(true)}
-                  className={`${isDarkMode ? 'bg-purple-700 text-white hover:bg-purple-600' : 'bg-purple-600 text-white hover:bg-purple-500'} shadow-lg hover:shadow-xl p-2 sm:p-3 rounded-lg transition-all duration-200`}
+                  className={`${isDarkMode ? 'bg-purple-700 text-white hover:bg-purple-600' : 'bg-purple-600 text-white hover:bg-purple-500'} shadow-lg hover:shadow-xl p-2 rounded-lg transition-all duration-200 flex items-center gap-2 h-10`}
                   title="View User Activity Logs"
                 >
                   <Activity className="w-4 h-4" />
-                  <span className="hidden sm:inline ml-2">Activity Logs</span>
+                  <span className="hidden lg:inline">Activity Logs</span>
                 </button>
               )}
+              {(tableType === 'company' || tableType === 'admin') && (
+                <button 
+                  onClick={() => setShowInactiveRecords(!showInactiveRecords)}
+                  className={`${showInactiveRecords 
+                    ? (isDarkMode ? 'bg-orange-700 text-white hover:bg-orange-600' : 'bg-orange-600 text-white hover:bg-orange-500')
+                    : (isDarkMode ? 'bg-gray-700 text-white hover:bg-gray-600' : 'bg-gray-600 text-white hover:bg-gray-500')
+                  } shadow-lg hover:shadow-xl p-2 rounded-lg transition-all duration-200 flex items-center gap-2 h-10`}
+                  title={showInactiveRecords ? "Hide inactive records" : "Show inactive records"}
+                >
+                  <div className="w-4 h-4 flex items-center justify-center">
+                    <div className={`w-2 h-2 rounded-full ${showInactiveRecords ? 'bg-white' : 'bg-gray-300'}`}></div>
+                  </div>
+                  <span className="hidden lg:inline">
+                    {showInactiveRecords ? 'Hide Inactive' : 'Show Inactive'}
+                  </span>
+                </button>
+              )}
+              <button
+                onClick={() => setIsDarkMode(!isDarkMode)}
+                className={`${isDarkMode ? 'text-blue-200 hover:text-white hover:bg-blue-700' : 'text-blue-100 hover:text-white hover:bg-blue-600'} p-2 rounded-lg transition-all duration-200 flex items-center gap-2 h-10`}
+                title={`Switch to ${isDarkMode ? 'light' : 'dark'} mode`}
+              >
+                {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                <span className="hidden lg:inline">
+                  {isDarkMode ? '' : ''}
+                </span>
+              </button>
             </div>
           </div>
         </div>
@@ -892,7 +942,7 @@ const M88DatabaseUI = ({
               <span>Organize your data view</span>
             </div>
           </div>
-          <div className="flex flex-wrap gap-1.5 sm:gap-2">
+          <div className="flex flex-wrap gap-1.5 sm:gap-2 overflow-x-auto pb-2">
             {getGroupSummary()
               .filter(group => !(tableType === 'factory' && group.name === 'Flags'))
               .map(group => {
@@ -906,7 +956,7 @@ const M88DatabaseUI = ({
                         [group.name]: !prev[group.name]
                       }));
                     }}
-                    className={`group flex items-center gap-2 px-3 py-2 rounded-xl border transition-all duration-300 ${
+                    className={`group flex items-center gap-2 px-2 sm:px-3 py-2 rounded-xl border transition-all duration-300 whitespace-nowrap ${
                       isCollapsed 
                         ? `bg-secondary-50 text-secondary-600 border-secondary-200 hover:bg-secondary-100 hover:border-secondary-300` 
                         : `${group.colors.background} ${group.colors.text} ${group.colors.border} ${group.colors.hover} shadow-soft hover:shadow-medium`
@@ -942,7 +992,7 @@ const M88DatabaseUI = ({
         </div>
       </div>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 sm:space-y-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 sm:space-y-8 overflow-hidden">
         {/* Search and Filters */}
         <div className="space-y-6">
           <SearchBar

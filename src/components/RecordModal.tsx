@@ -43,7 +43,17 @@ const COMPANY_RESTRICTED_FIELDS = [
   'fa_pt', 
   'fa_korea', 
   'fa_singfore', 
-  'fa_heads'
+  'fa_heads',
+  'wuxi_trims_coordinator',
+  'wuxi_label_coordinator',
+  'singfore_trims_coordinator',
+  'singfore_label_coordinator',
+  'headsup_trims_coordinator',
+  'headsup_label_coordinator',
+  'hz_pt_ujump_trims_coordinator',
+  'hz_pt_ujump_label_coordinator',
+  'koreamel_trims_coordinator',
+  'koreamel_label_coordinator',
 ];
 
 // Check if a field should be restricted for the current user

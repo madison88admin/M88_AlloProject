@@ -685,8 +685,8 @@ export const DataTable = ({
     <div className="relative">
       <div className="overflow-hidden bg-white">
         {/* Professional Scroll Controls */}
-        <div className="flex items-center justify-between p-4 border-b border-secondary-200 bg-gradient-to-r from-secondary-50 to-secondary-100/50">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 border-b border-secondary-200 bg-gradient-to-r from-secondary-50 to-secondary-100/50">
+          <div className="flex items-center gap-3 flex-wrap">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-success-500 rounded-full animate-pulse-soft"></div>
               <span className="text-sm font-medium text-secondary-600">
@@ -698,7 +698,7 @@ export const DataTable = ({
               {columns.length} columns visible
             </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 justify-end">
             <button
               onClick={scrollLeft}
               className="w-10 h-10 bg-white border border-secondary-200 rounded-xl shadow-soft flex items-center justify-center text-secondary-600 hover:text-secondary-900 hover:bg-secondary-50 hover:shadow-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
