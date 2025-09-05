@@ -229,28 +229,24 @@ const M88DatabaseUI = ({
   ];
 
   const companyNonEditableKeys = [
-    'hz_pt_u_jump_senior_md',
-    'pt_ujump_local_md',
-    'hz_u_jump_shipping',
-    'pt_ujump_shipping',
-    'wuxi_jump_senior_md',
-    'wuxi_local_md',
-    'wuxi_shipping',
-    'singfore_jump_senior_md',
-    'singfore_local_md',
-    'singfore_shipping',
-    'koreamel_jump_senior_md',
-    'koreamel_local_md',
-    'koreamel_shipping',
-    'headsup_senior_md',
-    'headsup_local_md',
-    'headsup_shipping',
-    'fa_wuxi', 
-    'fa_hz', 
-    'fa_pt', 
-    'fa_korea', 
-    'fa_singfore', 
-    'fa_heads'
+      'fa_wuxi', 'fa_hz', 'fa_pt', 'fa_korea', 'fa_singfore', 'fa_heads',
+      'wuxi_moretti', 'hz_u_jump', 'pt_u_jump', 'korea_mel', 'singfore', 'heads_up',
+      'hz_pt_u_jump_senior_md', 'hz_u_jump_shipping', 'pt_ujump_shipping',
+      'wuxi_jump_senior_md', 'wuxi_shipping',
+      'singfore_jump_senior_md', 'singfore_shipping',
+      'koreamel_jump_senior_md', 'koreamel_shipping',
+      'headsup_senior_md', 'headsup_shipping',
+      'wuxi_trims_coordinator', 'wuxi_label_coordinator',
+      'singfore_trims_coordinator', 'singfore_label_coordinator',
+      'headsup_trims_coordinator', 'headsup_label_coordinator',
+      'hz_pt_ujump_trims_coordinator', 'hz_pt_ujump_label_coordinator',
+      'koreamel_trims_coordinator', 'koreamel_label_coordinator'
+ //   'pt_ujump_local_md',
+ //   'wuxi_local_md',
+ //   'singfore_local_md',
+ //   'koreamel_local_md',
+ //   'headsup_local_md',
+
   ];
 
   const factoryNonEditableKeys = [
@@ -742,17 +738,26 @@ const M88DatabaseUI = ({
   };
 
   const getEditableColumns = (type: 'company' | 'factory' | 'admin') => {
+    console.log('🔍 getEditableColumns called with:', { type, userType: user?.type, isAdmin: user?.type === 'admin' });
+    
     if (type === 'admin') {
-      return columns.map(col => col.key);
+      const editable = columns.map(col => col.key);
+      console.log('👑 Admin: All columns editable:', editable);
+      return editable;
     } 
     
     if (type === 'company') {
       if (user?.type === 'admin') {
-        return columns.map(col => col.key);
+        const editable = columns.map(col => col.key);
+        console.log('👑 Company Admin: All columns editable:', editable);
+        return editable;
       } else {
-        return columns
+        const editable = columns
           .filter(col => !companyNonEditableKeys.includes(col.key))
           .map(col => col.key);
+        console.log('🏢 Company User: Editable columns:', editable);
+        console.log('🚫 Company User: Non-editable keys:', companyNonEditableKeys);
+        return editable;
       }
     } 
     
@@ -760,7 +765,7 @@ const M88DatabaseUI = ({
       // Get factory-specific columns that this factory can edit
       const factorySpecificColumns = user?.username ? getFactorySpecificColumns(user.username) : [];
       
-      return columns
+      const editable = columns
         .filter(col => {
           // Allow editing if it's not in the non-editable list
           if (!factoryNonEditableKeys.includes(col.key)) {
@@ -773,6 +778,8 @@ const M88DatabaseUI = ({
           return false;
         })
         .map(col => col.key);
+      console.log('🏭 Factory: Editable columns:', editable);
+      return editable;
     }
   
     return [];
