@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Plus, RefreshCw, X, ChevronDown, Filter, Sun, Moon, Activity } from 'lucide-react';
+import { Plus, RefreshCw, X, ChevronDown, Filter, Activity } from 'lucide-react';
 
 import type { Column, SortConfig, Filters, DataRecord, ColumnVisibility } from './types';
 import { useM88Data } from './hooks/useM88data';
@@ -155,7 +155,6 @@ const M88DatabaseUI = ({
   const [customColumns, setCustomColumns] = useState<Column[]>([]);
   const [quickView, setQuickView] = useState<'company_essentials' | 'factory_essentials' | 'all' | 'custom'>('company_essentials');
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [showUserLogs, setShowUserLogs] = useState(false);
   const [showInactiveRecords, setShowInactiveRecords] = useState(false);
 
@@ -453,14 +452,6 @@ const M88DatabaseUI = ({
     localStorage.setItem('m88.collapsedGroups', JSON.stringify(collapsedGroups));
   }, [collapsedGroups]);
 
-  // Dark mode effect
-  useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [isDarkMode]);
 
   // Handle column reordering
   const handleColumnUpdate = (newColumns: Column[]) => {
@@ -831,39 +822,49 @@ const M88DatabaseUI = ({
   if (error) return <ErrorScreen error={error} onRetry={loadData} />;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-secondary-50 via-primary-50/30 to-brand-indigo/5 dark:from-secondary-900 dark:via-secondary-800/50 dark:to-secondary-900">
-      {/* Professional Header */}
-      <header className="sticky top-0 z-40 backdrop-blur-md" style={{ backgroundColor: isDarkMode ? '#1e3a5f' : '#3D75A3' }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3">
-          <div className="flex items-center justify-between gap-4 h-14">
+    <div 
+      className="min-h-screen bg-gradient-to-br from-secondary-50 via-primary-50/30 to-brand-indigo/5 dark:from-secondary-900 dark:via-secondary-800/50 dark:to-secondary-900 relative"
+    >
+      {/* Blurred background overlay */}
+      <div 
+        className="absolute inset-0 -z-10"
+        style={{
+          backgroundImage: 'url(/everest.jpg)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          backgroundAttachment: 'fixed',
+          filter: 'blur(3px)'
+        }}
+      ></div>
+      {/* Enhanced Professional Header */}
+      <header className="sticky top-0 z-40 backdrop-blur-lg shadow-2xl border-b border-white/20" style={{ backgroundColor: 'rgba(61, 117, 163, 0.95)' }}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
+          <div className="flex items-center justify-between gap-4 h-16">
             <div className="flex items-center gap-3 min-w-0 flex-1 h-full">
               <div className="relative">
-                <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-medium border border-secondary-200 overflow-hidden">
-                  <img 
-                    src="/m88logo.jpg" 
-                    alt="M88 Logo" 
-                    className="w-10 h-10 object-contain"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                      const parent = target.parentElement;
-                      if (parent) {
-                        parent.innerHTML = '<svg class="w-10 h-10 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>';
-                      }
-                    }}
-                  />
-                </div>
-                <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-success-500 rounded-full border-2 border-white animate-pulse-soft"></div>
+                <img 
+                  src="/m88-whitelogo.png" 
+                  alt="M88 Logo" 
+                  className="h-28 w-40 object-contain"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                    const parent = target.parentElement;
+                    if (parent) {
+                      parent.innerHTML = '<div class="w-8 h-8 bg-indigo-500 rounded flex items-center justify-center"><span class="text-white font-bold text-sm">M88</span></div>';
+                    }
+                  }}
+                />
               </div>
               <div className="hidden sm:flex items-center gap-3 text-sm whitespace-nowrap flex-shrink-0">
-                <h1 className="text-lg font-bold text-white tracking-tight">Account Allocation</h1>
                 <div className="flex items-center gap-2">
-                  <span className={`font-medium ${isDarkMode ? 'text-blue-200' : 'text-blue-100'}`}>
+                  <span className="font-medium text-blue-100">
                     {getTableTypeDisplayName(tableType)}
                   </span>
                   <div className="flex items-center gap-1">
-                    <div className={`w-2 h-2 ${isDarkMode ? 'bg-green-300' : 'bg-green-400'} rounded-full animate-pulse-soft`}></div>
-                    <span className={`${isDarkMode ? 'text-green-200' : 'text-green-300'} font-medium`}>Connected</span>
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse-soft"></div>
+                    <span className="text-green-300 font-medium">Connected</span>
                   </div>
                 </div>
               </div>
@@ -874,7 +875,7 @@ const M88DatabaseUI = ({
             <div className="flex items-center gap-1 sm:gap-2 lg:gap-3 justify-end h-full flex-shrink-0">
               <button
                 onClick={onLogout}
-                className={`${isDarkMode ? 'text-red-300 hover:text-red-200 hover:bg-red-700/20' : 'text-red-200 hover:text-red-100 hover:bg-red-600/20'} p-2 rounded-lg transition-all duration-200 flex items-center gap-2 h-10`}
+                className="text-red-200 hover:text-red-100 hover:bg-red-600/20 p-2 rounded-lg transition-all duration-200 flex items-center gap-2 h-10"
                 title="Log out"
               >
                 <X className="w-4 h-4" />
@@ -882,7 +883,7 @@ const M88DatabaseUI = ({
               </button>
               <button 
                 onClick={handleRefresh}
-                className={`${isDarkMode ? 'bg-blue-700 text-white hover:bg-blue-600' : 'bg-blue-600 text-white hover:bg-blue-500'} p-2 rounded-lg transition-all duration-200 flex items-center gap-2 h-10`}
+                className="bg-blue-600 text-white hover:bg-blue-500 p-2 rounded-lg transition-all duration-200 flex items-center gap-2 h-10"
                 title="Refresh data from database"
               >
                 <RefreshCw className="w-4 h-4" />
@@ -891,7 +892,7 @@ const M88DatabaseUI = ({
               {tableType !== 'factory' && (
                 <button 
                   onClick={() => setShowAddModal(true)}
-                  className={`${isDarkMode ? 'bg-white text-blue-700 hover:bg-blue-100' : 'bg-white text-blue-600 hover:bg-blue-50'} shadow-lg hover:shadow-xl p-2 rounded-lg transition-all duration-200 flex items-center gap-2 h-10`}
+                  className="bg-white text-blue-600 hover:bg-blue-50 shadow-lg hover:shadow-xl p-2 rounded-lg transition-all duration-200 flex items-center gap-2 h-10"
                 >
                   <Plus className="w-4 h-4" />
                   <span className="hidden lg:inline">Add Record</span>
@@ -900,7 +901,7 @@ const M88DatabaseUI = ({
               {tableType === 'admin' && (
                 <button 
                   onClick={() => setShowUserLogs(true)}
-                  className={`${isDarkMode ? 'bg-purple-700 text-white hover:bg-purple-600' : 'bg-purple-600 text-white hover:bg-purple-500'} shadow-lg hover:shadow-xl p-2 rounded-lg transition-all duration-200 flex items-center gap-2 h-10`}
+                  className="bg-purple-600 text-white hover:bg-purple-500 shadow-lg hover:shadow-xl p-2 rounded-lg transition-all duration-200 flex items-center gap-2 h-10"
                   title="View User Activity Logs"
                 >
                   <Activity className="w-4 h-4" />
@@ -911,8 +912,8 @@ const M88DatabaseUI = ({
                 <button 
                   onClick={() => setShowInactiveRecords(!showInactiveRecords)}
                   className={`${showInactiveRecords 
-                    ? (isDarkMode ? 'bg-orange-700 text-white hover:bg-orange-600' : 'bg-orange-600 text-white hover:bg-orange-500')
-                    : (isDarkMode ? 'bg-gray-700 text-white hover:bg-gray-600' : 'bg-gray-600 text-white hover:bg-gray-500')
+                    ? 'bg-orange-600 text-white hover:bg-orange-500'
+                    : 'bg-gray-600 text-white hover:bg-gray-500'
                   } shadow-lg hover:shadow-xl p-2 rounded-lg transition-all duration-200 flex items-center gap-2 h-10`}
                   title={showInactiveRecords ? "Hide inactive records" : "Show inactive records"}
                 >
@@ -924,16 +925,6 @@ const M88DatabaseUI = ({
                   </span>
                 </button>
               )}
-              <button
-                onClick={() => setIsDarkMode(!isDarkMode)}
-                className={`${isDarkMode ? 'text-blue-200 hover:text-white hover:bg-blue-700' : 'text-blue-100 hover:text-white hover:bg-blue-600'} p-2 rounded-lg transition-all duration-200 flex items-center gap-2 h-10`}
-                title={`Switch to ${isDarkMode ? 'light' : 'dark'} mode`}
-              >
-                {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                <span className="hidden lg:inline">
-                  {isDarkMode ? '' : ''}
-                </span>
-              </button>
             </div>
           </div>
         </div>
@@ -949,7 +940,7 @@ const M88DatabaseUI = ({
               <span>Organize your data view</span>
             </div>
           </div>
-          <div className="flex flex-wrap gap-1.5 sm:gap-2 overflow-x-auto pb-2">
+          <div className="flex flex-wrap gap-2 sm:gap-3 overflow-x-auto pb-2">
             {getGroupSummary()
               .filter(group => !(tableType === 'factory' && group.name === 'Flags'))
               .map(group => {
@@ -963,15 +954,15 @@ const M88DatabaseUI = ({
                         [group.name]: !prev[group.name]
                       }));
                     }}
-                    className={`group flex items-center gap-2 px-2 sm:px-3 py-2 rounded-xl border transition-all duration-300 whitespace-nowrap ${
+                    className={`group flex items-center gap-2 px-3 sm:px-4 py-2.5 rounded-xl border-2 transition-all duration-300 whitespace-nowrap backdrop-blur-sm ${
                       isCollapsed 
-                        ? `bg-secondary-50 text-secondary-600 border-secondary-200 hover:bg-secondary-100 hover:border-secondary-300` 
-                        : `${group.colors.background} ${group.colors.text} ${group.colors.border} ${group.colors.hover} shadow-soft hover:shadow-medium`
+                        ? `bg-white/60 text-gray-600 border-gray-200 hover:bg-white/80 hover:border-gray-300 shadow-lg` 
+                        : `${group.colors.background} ${group.colors.text} ${group.colors.border} ${group.colors.hover} shadow-xl hover:shadow-2xl transform hover:scale-105`
                     }`}
                   >
-                    <div className={`w-3 h-3 rounded-full transition-all duration-200 ${
+                    <div className={`w-3 h-3 rounded-full transition-all duration-200 shadow-sm ${
                       isCollapsed 
-                        ? 'bg-secondary-400' 
+                        ? 'bg-gray-400' 
                         : group.colors.background.replace('bg-', 'bg-').replace('-50', '-500')
                     }`} />
                     <span className="text-xs font-semibold">{group.name}</span>

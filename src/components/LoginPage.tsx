@@ -132,11 +132,27 @@ const LoginPage = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-100 to-indigo-100">
+    <div 
+      className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-100 to-indigo-100"
+      style={{
+        backgroundImage: 'url(/mountain-login.jpg)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        backgroundAttachment: 'fixed'
+      }}
+    >
       <div className="bg-white rounded-2xl shadow-xl p-10 w-full max-w-md">
-        <div className="flex items-center justify-center mb-8">
-          <Building2 className="w-12 h-12 text-indigo-600 mr-3" />
-          <h1 className="text-2xl font-bold text-slate-900">M88 Account Allocation</h1>
+        <div className="text-center mb-10">
+          <div className="flex items-center justify-center mb-8">
+            <img 
+              src="/m88-darklogo.png" 
+              alt="M88 Logo" 
+              className="h-16 w-auto object-contain"
+            />
+          </div>
+          <h1 className="text-2xl font-bold text-slate-900 mb-2">Account Allocation System</h1>
+          <div className="w-16 h-1 bg-gradient-to-r from-indigo-500 to-purple-500 mx-auto mt-3 rounded-full"></div>
         </div>
 
         {/* LOGIN FORM */}
