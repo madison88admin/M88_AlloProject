@@ -91,10 +91,10 @@ const getFactorySpecificColumns = (username: string): string[] => {
   // Map factory usernames to their specific columns
   const factoryColumnMap: Record<string, string[]> = {
     'factory_Wuxi': ['fa_wuxi', 'wuxi_jump_senior_md', 'wuxi_shipping', 'wuxi_trims_coordinator', 'wuxi_label_coordinator'],
-    'factory_PTwuuUjump': ['fa_pt', 'hz_pt_u_jump_senior_md', 'hz_u_jump_shipping', 'pt_ujump_shipping', 'hz_pt_ujump_trims_coordinator', 'hz_pt_ujump_label_coordinator'],
+    'factory_PTwuuUjump': ['fa_pt_uwu', 'fa_hz_u', 'hz_pt_u_jump_senior_md', 'hz_u_jump_shipping', 'pt_ujump_shipping', 'hz_pt_ujump_trims_coordinator', 'hz_pt_ujump_label_coordinator'],
     'factory_Singfore': ['fa_singfore', 'singfore_jump_senior_md', 'singfore_shipping', 'singfore_trims_coordinator', 'singfore_label_coordinator'],
-    'factory_HeadsUp': ['fa_heads', 'headsup_senior_md', 'headsup_shipping', 'headsup_trims_coordinator', 'headsup_label_coordinator'],
-    'factory_KoreaMel': ['fa_korea', 'koreamel_jump_senior_md', 'koreamel_shipping', 'koreamel_trims_coordinator', 'koreamel_label_coordinator']
+    'factory_HeadsUp': ['fa_heads_up', 'headsup_senior_md', 'headsup_shipping', 'headsup_trims_coordinator', 'headsup_label_coordinator'],
+    'factory_KoreaMel': ['fa_korea_m', 'koreamel_jump_senior_md', 'koreamel_shipping', 'koreamel_trims_coordinator', 'koreamel_label_coordinator']
   };
   
   return factoryColumnMap[username] || [];
@@ -205,12 +205,12 @@ const M88DatabaseUI = ({
     { key: 'koreamel_shipping', label: 'KoreaMel Shipping', type: 'text', width: '150px' },
     { key: 'headsup_senior_md', label: 'HeadsUp Senior MD', type: 'text', width: '180px' },
     { key: 'headsup_shipping', label: 'HeadsUp Shipping', type: 'text', width: '150px' },
-    { key: 'fa_wuxi', label: 'FA Wuxi', type: 'text', width: '120px' },
-    { key: 'fa_hz', label: 'FA HZ', type: 'text', width: '120px' },
-    { key: 'fa_pt', label: 'FA PT', type: 'text', width: '120px' },
-    { key: 'fa_korea', label: 'FA Korea', type: 'text', width: '120px' },
-    { key: 'fa_singfore', label: 'FA Singfore', type: 'text', width: '120px' },
-    { key: 'fa_heads', label: 'FA Heads', type: 'text', width: '120px' },
+    { key: 'fa_wuxi', label: 'FA Wuxi(Wuxi)', type: 'text', width: '120px' },
+    { key: 'fa_hz_u', label: 'FA HZ(HZ-U)', type: 'text', width: '120px' },
+    { key: 'fa_pt_uwu', label: 'FA PT(PT-UWU)', type: 'text', width: '120px' },
+    { key: 'fa_korea_m', label: 'FA Korea(Korea-M)', type: 'text', width: '120px' },
+    { key: 'fa_singfore', label: 'FA Singfore(Singfore)', type: 'text', width: '120px' },
+    { key: 'fa_heads_up', label: 'FA Heads(Heads Up)', type: 'text', width: '120px' },
     { key: 'wuxi_trims_coordinator', label: 'Wuxi Trims Coordinator', type: 'text', width: '180px' },
     { key: 'wuxi_label_coordinator', label: 'Wuxi Label Coordinator', type: 'text', width: '180px' },
     { key: 'singfore_trims_coordinator', label: 'Singfore Trims Coordinator', type: 'text', width: '180px' },
@@ -229,8 +229,8 @@ const M88DatabaseUI = ({
   ];
 
   const companyNonEditableKeys = [
-      'fa_wuxi', 'fa_hz', 'fa_pt', 'fa_korea', 'fa_singfore', 'fa_heads',
-      'wuxi_moretti', 'hz_u_jump', 'pt_u_jump', 'korea_mel', 'singfore', 'heads_up',
+      'fa_wuxi', 'fa_hz_u', 'fa_pt_uwu', 'fa_korea_m', 'fa_singfore', 'fa_heads_up',
+ 
       'hz_pt_u_jump_senior_md', 'hz_u_jump_shipping', 'pt_ujump_shipping',
       'wuxi_jump_senior_md', 'wuxi_shipping',
       'singfore_jump_senior_md', 'singfore_shipping',
@@ -275,7 +275,7 @@ const M88DatabaseUI = ({
     
     // All factory assignment, flag, and new factory-specific columns
     const allFactoryColumns = [
-      'fa_wuxi', 'fa_hz', 'fa_pt', 'fa_korea', 'fa_singfore', 'fa_heads',
+      'fa_wuxi', 'fa_hz_u', 'fa_pt_uwu', 'fa_korea_m', 'fa_singfore', 'fa_heads_up',
       'wuxi_moretti', 'hz_u_jump', 'pt_u_jump', 'korea_mel', 'singfore', 'heads_up',
       'hz_pt_u_jump_senior_md', 'hz_u_jump_shipping', 'pt_ujump_shipping',
       'wuxi_jump_senior_md', 'wuxi_shipping',
@@ -416,11 +416,11 @@ const M88DatabaseUI = ({
     headsup_senior_md: 'Factory Assignment',
     headsup_shipping: 'Factory Assignment',
     fa_wuxi: 'Factory Assignment',
-    fa_hz: 'Factory Assignment',
-    fa_pt: 'Factory Assignment',
-    fa_korea: 'Factory Assignment',
+    fa_hz_u: 'Factory Assignment',
+    fa_pt_uwu: 'Factory Assignment',
+    fa_korea_m: 'Factory Assignment',
     fa_singfore: 'Factory Assignment',
-    fa_heads: 'Factory Assignment',
+    fa_heads_up: 'Factory Assignment',
     wuxi_trims_coordinator: 'Factory Assignment',
     wuxi_label_coordinator: 'Factory Assignment',
     singfore_trims_coordinator: 'Factory Assignment',
