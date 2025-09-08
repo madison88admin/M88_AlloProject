@@ -90,9 +90,8 @@ const normalizeYesBlankValue = (value: any): string => {
 const getFactorySpecificColumns = (username: string): string[] => {
   // Map factory usernames to their specific columns
   const factoryColumnMap: Record<string, string[]> = {
-    'factory_Wuxi': ['fa_wuxi', 'wuxi_jump_senior_md', 'wuxi_shipping', 'wuxi_trims_coordinator', 'wuxi_label_coordinator'],
-    'factory_PTwuuUjump': ['fa_pt_uwu', 'fa_hz_u', 'hz_pt_u_jump_senior_md', 'hz_u_jump_shipping', 'pt_ujump_shipping', 'hz_pt_ujump_trims_coordinator', 'hz_pt_ujump_label_coordinator'],
-    'factory_Singfore': ['fa_singfore', 'singfore_jump_senior_md', 'singfore_shipping', 'singfore_trims_coordinator', 'singfore_label_coordinator'],
+    'factory_WuxiSingfore': ['fa_wuxi', 'fa_singfore', 'wuxi_jump_senior_md', 'wuxi_shipping', 'wuxi_trims_coordinator', 'wuxi_label_coordinator', 'singfore_jump_senior_md', 'singfore_shipping', 'singfore_trims_coordinator', 'singfore_label_coordinator'],
+    'factory_PTuwuHzuUjump': ['fa_pt_uwu', 'fa_hz_u', 'hz_pt_u_jump_senior_md', 'hz_u_jump_shipping', 'pt_ujump_shipping', 'hz_pt_ujump_trims_coordinator', 'hz_pt_ujump_label_coordinator'],
     'factory_HeadsUp': ['fa_heads_up', 'headsup_senior_md', 'headsup_shipping', 'headsup_trims_coordinator', 'headsup_label_coordinator'],
     'factory_KoreaMel': ['fa_korea_m', 'koreamel_jump_senior_md', 'koreamel_shipping', 'koreamel_trims_coordinator', 'koreamel_label_coordinator']
   };
@@ -468,9 +467,65 @@ const M88DatabaseUI = ({
     }
   };
 
-  // Enhanced data processing to flatten custom fields
+  // Enhanced data processing to flatten custom fields and apply factory restrictions
+  // 
+  // FACTORY RESTRICTIONS IMPLEMENTATION:
+  // - Factory users only see brands where their specific FA column(s) match their factory name(s)
+  // - For single factories: only records where their FA column matches (e.g., fa_wuxi = "Wuxi")
+  // - For merged factories: records where ANY of their FA columns match (e.g., fa_wuxi = "Wuxi" OR fa_singfore = "Singfore")
+  // - The brand_visible_to_factory field is populated with all_brand only for records assigned to the current factory
+  // - Records not assigned to the current factory are completely filtered out from the view
+  // - This ensures factory users only see and can edit data relevant to their specific factory(ies)
   const processedData = useMemo(() => {
     let filtered = data;
+
+    // Apply factory-specific filtering for factory users
+    if (tableType === 'factory' && user?.username) {
+      const factorySpecificColumns = getFactorySpecificColumns(user.username);
+      
+      // Get all FA columns for this factory
+      const faColumns = factorySpecificColumns.filter(col => col.startsWith('fa_'));
+      
+      if (faColumns.length > 0) {
+        // Map FA columns to factory names
+        const faToFactoryMap: Record<string, string> = {
+          'fa_wuxi': 'Wuxi',
+          'fa_hz_u': 'HZ-U', 
+          'fa_pt_uwu': 'PT-UWU',
+          'fa_korea_m': 'Korea-M',
+          'fa_singfore': 'Singfore',
+          'fa_heads_up': 'Heads Up'
+        };
+        
+        // For merged factories, check multiple FA columns
+        if (user.username === 'factory_WuxiSingfore') {
+          // Show records where either fa_wuxi = "Wuxi" OR fa_singfore = "Singfore"
+          filtered = filtered.filter(row => {
+            const wuxiValue = row['fa_wuxi'];
+            const singforeValue = row['fa_singfore'];
+            return wuxiValue === 'Wuxi' || singforeValue === 'Singfore';
+          });
+        } else if (user.username === 'factory_PTuwuHzuUjump') {
+          // Show records where either fa_pt_uwu = "PT-UWU" OR fa_hz_u = "HZ-U"
+          filtered = filtered.filter(row => {
+            const ptUwuValue = row['fa_pt_uwu'];
+            const hzUValue = row['fa_hz_u'];
+            return ptUwuValue === 'PT-UWU' || hzUValue === 'HZ-U';
+          });
+        } else {
+          // For single factories, check their specific FA column
+          const faColumn = faColumns[0]; // Take the first FA column
+          const factoryName = faToFactoryMap[faColumn];
+          
+          if (factoryName) {
+            filtered = filtered.filter(row => {
+              const faValue = row[faColumn];
+              return faValue === factoryName;
+            });
+          }
+        }
+      }
+    }
 
     // Conditionally exclude records with Inactive status based on toggle
     if (!showInactiveRecords) {
@@ -497,6 +552,61 @@ const M88DatabaseUI = ({
     return filtered.map(record => {
       const processedRecord = { ...record };
       
+      // For factory users, populate brand_visible_to_factory with all_brand for records assigned to their factory
+      if (tableType === 'factory' && user?.username) {
+        const factorySpecificColumns = getFactorySpecificColumns(user.username);
+        const faColumns = factorySpecificColumns.filter(col => col.startsWith('fa_'));
+        
+        if (faColumns.length > 0) {
+          const faToFactoryMap: Record<string, string> = {
+            'fa_wuxi': 'Wuxi',
+            'fa_hz_u': 'HZ-U', 
+            'fa_pt_uwu': 'PT-UWU',
+            'fa_korea_m': 'Korea-M',
+            'fa_singfore': 'Singfore',
+            'fa_heads_up': 'Heads Up'
+          };
+          
+          // For merged factories, check multiple FA columns
+          if (user.username === 'factory_WuxiSingfore') {
+            const wuxiValue = record['fa_wuxi'];
+            const singforeValue = record['fa_singfore'];
+            
+            // If this record is assigned to either Wuxi or Singfore, show the brand name
+            if (wuxiValue === 'Wuxi' || singforeValue === 'Singfore') {
+              processedRecord.brand_visible_to_factory = record.all_brand;
+            } else {
+              // If not assigned to either factory, don't show the brand
+              processedRecord.brand_visible_to_factory = '';
+            }
+          } else if (user.username === 'factory_PTuwuHzuUjump') {
+            const ptUwuValue = record['fa_pt_uwu'];
+            const hzUValue = record['fa_hz_u'];
+            
+            // If this record is assigned to either PT-UWU or HZ-U, show the brand name
+            if (ptUwuValue === 'PT-UWU' || hzUValue === 'HZ-U') {
+              processedRecord.brand_visible_to_factory = record.all_brand;
+            } else {
+              // If not assigned to either factory, don't show the brand
+              processedRecord.brand_visible_to_factory = '';
+            }
+          } else {
+            // For single factories, check their specific FA column
+            const faColumn = faColumns[0];
+            const factoryName = faToFactoryMap[faColumn];
+            const faValue = record[faColumn];
+            
+            // If this record is assigned to the current factory, show the brand name
+            if (faValue === factoryName) {
+              processedRecord.brand_visible_to_factory = record.all_brand;
+            } else {
+              // If not assigned to this factory, don't show the brand
+              processedRecord.brand_visible_to_factory = '';
+            }
+          }
+        }
+      }
+      
       // Flatten custom_fields into the main record object
       if (record.custom_fields && typeof record.custom_fields === 'object') {
         Object.entries(record.custom_fields).forEach(([key, value]) => {
@@ -506,7 +616,7 @@ const M88DatabaseUI = ({
       
       return processedRecord;
     });
-  }, [data, searchTerm, filters, showInactiveRecords]);
+  }, [data, searchTerm, filters, showInactiveRecords, tableType, user?.username]);
 
   // Initialize column visibility when columns change  
   useEffect(() => {
@@ -780,7 +890,22 @@ const M88DatabaseUI = ({
 
   // Get table type display name with user context
   const getTableTypeDisplayName = (type: 'company' | 'factory' | 'admin') => {
-    const userInfo = user ? ` (${user.name})` : '';
+    let userInfo = '';
+    if (user) {
+      // Special handling for merged factory accounts
+      if (type === 'factory') {
+        if (user.username === 'factory_WuxiSingfore') {
+          userInfo = ` (Wuxi & Singfore)`;
+        } else if (user.username === 'factory_PTuwuHzuUjump') {
+          userInfo = ` (PT-U & HZ-U UJump)`;
+        } else {
+          userInfo = ` (${user.name})`;
+        }
+      } else {
+        userInfo = ` (${user.name})`;
+      }
+    }
+    
     switch (type) {
       case 'company':
         return `Company Dashboard${userInfo}`;

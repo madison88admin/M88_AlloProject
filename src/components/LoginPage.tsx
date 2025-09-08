@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, AlertCircle, User, Building2 } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle, User } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
-import M88DatabaseUI from '../App';
-import { logUserLogin, logUserLogout } from '../services/loggingService';
+import { logUserLogin } from '../services/loggingService';
 
 // Updated Account type to include admin
 type Account = {
@@ -18,13 +17,16 @@ type Account = {
   is_active?: boolean;
 };
 
-const LoginPage = () => {
+interface LoginPageProps {
+  onLogin: (user: Account) => void;
+}
+
+const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [authenticatedUser, setAuthenticatedUser] = useState<Account | null>(null);
 
   // LOGIN via Supabase Accounts table with admin support
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -74,11 +76,13 @@ const LoginPage = () => {
 
       // Login successful
       console.log(`Login successful for ${user.type} user:`, user.username);
-      setAuthenticatedUser(user);
       setError('');
       
       // Log the login
       logUserLogin(user.id, user.username, user.type);
+      
+      // Call the onLogin callback with the user data
+      onLogin(user);
       
       // Clear form
       setUsername('');
@@ -92,44 +96,9 @@ const LoginPage = () => {
     }
   };
 
-  const handleLogout = () => {
-    console.log('User logged out');
-    
-    // Log the logout if user is authenticated
-    if (authenticatedUser) {
-      logUserLogout(authenticatedUser.id, authenticatedUser.username, authenticatedUser.type);
-    }
-    
-    setAuthenticatedUser(null);
-    setUsername('');
-    setPassword('');
-    setError('');
-  };
 
-  // Get user type display info
-  const getUserTypeInfo = (type: 'company' | 'factory' | 'admin') => {
-    switch (type) {
-      case 'company':
-        return { label: 'Company User', color: 'text-blue-600', bgColor: 'bg-blue-50' };
-      case 'factory':
-        return { label: 'Factory User', color: 'text-green-600', bgColor: 'bg-green-50' };
-      case 'admin':
-        return { label: 'Administrator', color: 'text-purple-600', bgColor: 'bg-purple-50' };
-      default:
-        return { label: 'User', color: 'text-gray-600', bgColor: 'bg-gray-50' };
-    }
-  };
 
-  // If user is authenticated, show the main app
-  if (authenticatedUser) {
-    return (
-      <M88DatabaseUI 
-        tableType={authenticatedUser.type} 
-        onLogout={handleLogout}
-        user={authenticatedUser} // Pass full user object
-      />
-    );
-  }
+  // Note: Authentication is now handled by the parent component
 
   return (
     <div 
