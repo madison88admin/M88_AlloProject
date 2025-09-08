@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Activity, 
   Search, 
@@ -27,8 +27,25 @@ const UserLogs: React.FC<UserLogsProps> = ({ isOpen, onClose }) => {
   const [filters, setFilters] = useState<LogFilters>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedLog, setSelectedLog] = useState<UserLog | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const allLogs = loggingService.getLogs();
+
+  // Refresh logs when modal opens and periodically while open
+  useEffect(() => {
+    if (isOpen) {
+      // Refresh immediately when modal opens
+      setRefreshTrigger(prev => prev + 1);
+      
+      // Set up periodic refresh every 5 seconds while modal is open
+      const interval = setInterval(() => {
+        setRefreshTrigger(prev => prev + 1);
+      }, 5000);
+      
+      // Cleanup interval when modal closes
+      return () => clearInterval(interval);
+    }
+  }, [isOpen]);
 
   const filteredLogs = useMemo(() => {
     let logs = allLogs;
@@ -56,7 +73,7 @@ const UserLogs: React.FC<UserLogsProps> = ({ isOpen, onClose }) => {
     }
 
     return logs;
-  }, [allLogs, searchTerm, filters]);
+  }, [allLogs, searchTerm, filters, refreshTrigger]);
 
   const getActionIcon = (action: string) => {
     switch (action) {
@@ -218,8 +235,14 @@ const UserLogs: React.FC<UserLogsProps> = ({ isOpen, onClose }) => {
   const clearLogs = () => {
     if (window.confirm('Are you sure you want to clear all logs? This action cannot be undone.')) {
       loggingService.clearLogs();
+      setRefreshTrigger(prev => prev + 1);
     }
   };
+
+  const refreshLogs = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
+
 
   if (!isOpen) return null;
 
