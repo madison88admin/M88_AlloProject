@@ -152,7 +152,7 @@ const M88DatabaseUI = ({
   const [editingRecord, setEditingRecord] = useState<DataRecord | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [customColumns, setCustomColumns] = useState<Column[]>([]);
-  const [quickView, setQuickView] = useState<'company_essentials' | 'factory_essentials' | 'all' | 'custom'>('company_essentials');
+  const [quickView] = useState<'company_essentials' | 'factory_essentials' | 'all' | 'custom'>('company_essentials');
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   const [showUserLogs, setShowUserLogs] = useState(false);
   const [showInactiveRecords, setShowInactiveRecords] = useState(false);
@@ -748,46 +748,6 @@ const M88DatabaseUI = ({
     }
   };
 
-  // Add custom column functionality - permissions based on table type and user
-  const handleAddCustomColumn = async (columnData: { name: string; type: 'text' | 'select' | 'boolean' | 'yes_blank'; options?: string[] }) => {
-    // Check permissions
-    if (tableType === 'factory') {
-      alert('Factory users cannot add custom columns.');
-      return;
-    }
-    
-    if (tableType === 'company' && user?.type !== 'admin') {
-      alert('Only admin users can add custom columns.');
-      return;
-    }
-
-    const customKey = columnData.name.toLowerCase().replace(/[^a-z0-9]/g, '_');
-    
-    // Create new column definition
-    const newColumn: Column = {
-      key: `custom_${customKey}`,
-      label: columnData.name,
-      type: columnData.type,
-      options: columnData.options,
-      width: '150px',
-      custom: true
-    };
-
-    // Update column orders based on permissions
-    if (tableType === 'admin' || (tableType === 'company' && user?.type === 'admin')) {
-      if (tableType === 'admin') {
-        setAdminColumnOrder(prev => [...prev, newColumn]);
-      } else {
-        setCompanyColumnOrder(prev => [...prev, newColumn]);
-      }
-    }
-
-    // Make new column visible
-    setColumnVisibility(prev => ({
-      ...prev,
-      [`custom_${customKey}`]: true
-    }));
-  };
 
   // Enhanced save record handler that applies FA assignments and normalizes yes_blank values
   const handleEnhancedSaveRecord = async (record: DataRecord) => {
@@ -854,8 +814,6 @@ const M88DatabaseUI = ({
           .filter(col => !companyNonEditableKeys.includes(col.key))
           .map(col => col.key);
         
-        // Add FA columns as read-only (they'll be visible but not editable)
-        const faColumns = ['fa_wuxi', 'fa_hz_u', 'fa_pt_uwu', 'fa_korea_m', 'fa_singfore', 'fa_heads_up'];
         
         // Return only the editable columns (FA columns will be handled separately in DataTable)
         return editable;
@@ -917,13 +875,6 @@ const M88DatabaseUI = ({
     }
   };
 
-  // Determine if user can add custom columns
-  const canAddCustomColumns = () => {
-    if (tableType === 'factory') return false;
-    if (tableType === 'admin') return true;
-    if (tableType === 'company' && user?.type === 'admin') return true;
-    return false;
-  };
 
   // Helper to get columns by group
   const getColumnsByGroup = (groupName: string) => {
@@ -1133,19 +1084,9 @@ const M88DatabaseUI = ({
               columnVisibility={columnVisibility}
               onColumnVisibilityChange={setColumnVisibility}
               onColumnUpdate={handleColumnUpdate}
-              onAddCustomColumn={canAddCustomColumns() ? handleAddCustomColumn : undefined}
               onClose={() => setShowFilters(false)}
-              userRole={user?.type} // Add this line
-              onSetQuickView={setQuickView}
-              quickView={quickView}
+              userRole={user?.type}
               groupLabels={columnGroups}
-              collapsedGroups={collapsedGroups}
-              onToggleGroup={(groupName) => {
-                setCollapsedGroups(prev => ({
-                  ...prev,
-                  [groupName]: !prev[groupName]
-                }));
-              }}
             />
           )}
         </div>
