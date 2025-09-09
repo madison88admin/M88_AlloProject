@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, AlertCircle, User } from 'lucide-react';
+import { AlertCircle, User } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { logUserLogin } from '../services/loggingService';
 
@@ -157,19 +157,23 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                 onChange={e => setPassword(e.target.value)}
                 required
                 autoComplete="current-password"
+                data-form-type="other"
+                style={{ WebkitTextSecurity: showPassword ? 'none' : 'disc' }}
               />
-              <button
-                type="button"
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+              <span
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer text-sm font-medium select-none"
                 onClick={() => setShowPassword(!showPassword)}
-                tabIndex={-1}
+                style={{ 
+                  background: 'none', 
+                  border: 'none', 
+                  padding: 0, 
+                  margin: 0,
+                  outline: 'none',
+                  userSelect: 'none'
+                }}
               >
-                {showPassword ? (
-                  <EyeOff key="eye-off" className="w-5 h-5" />
-                ) : (
-                  <Eye key="eye" className="w-5 h-5" />
-                )}
-              </button>
+                {showPassword ? 'Hide' : 'Show'}
+              </span>
             </div>
           </div>
 
