@@ -9,11 +9,11 @@ interface FAMapping {
 
 const FA_MAPPINGS: FAMapping[] = [
   { factoryColumn: 'wuxi_moretti', faColumn: 'fa_wuxi', faName: 'Wuxi' },
-  { factoryColumn: 'hz_u_jump', faColumn: 'fa_hz', faName: 'HZ-U' },
-  { factoryColumn: 'pt_u_jump', faColumn: 'fa_pt', faName: 'PT-UWU' },
-  { factoryColumn: 'korea_mel', faColumn: 'fa_korea', faName: 'Korea-M' },
+  { factoryColumn: 'hz_u_jump', faColumn: 'fa_hz_u', faName: 'HZ-U' },
+  { factoryColumn: 'pt_u_jump', faColumn: 'fa_pt_uwu', faName: 'PT-UWU' },
+  { factoryColumn: 'korea_mel', faColumn: 'fa_korea_m', faName: 'Korea-M' },
   { factoryColumn: 'singfore', faColumn: 'fa_singfore', faName: 'Singfore' },
-  { factoryColumn: 'heads_up', faColumn: 'fa_heads', faName: 'Heads Up' }
+  { factoryColumn: 'heads_up', faColumn: 'fa_heads_up', faName: 'Heads Up' }
 ];
 
 export const updateFAAssignments = (data: DataRecord): DataRecord => {
