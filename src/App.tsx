@@ -1212,6 +1212,7 @@ const M88DatabaseUI = ({
             onCellUpdate={handleCellUpdate}
             editableColumns={editableColumns}
             tableType={tableType}
+            factoryType={tableType === 'factory' ? user?.username : undefined}
             groupLabels={Object.fromEntries(columns.map(c => [c.key, columnGroups[c.key] || '']))}
             groupColors={GROUP_COLORS} // Pass the color configuration
           />

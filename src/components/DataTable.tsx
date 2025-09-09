@@ -16,6 +16,7 @@ interface DataTableProps {
   onCellUpdate?: (rowId: number, columnKey: string, newValue: any) => void;
   editableColumns?: string[];
   tableType?: 'company' | 'factory' | 'admin';
+  factoryType?: string; // Add factory type for factory dashboards
   groupLabels?: Record<string, string>;
   groupColors?: Record<string, {
     background: string;
@@ -166,6 +167,7 @@ export const DataTable = ({
   onCellUpdate,
   editableColumns = columns.map(col => col.key),
   tableType,
+  factoryType,
   groupLabels = {},
   groupColors: propGroupColors = {}
 }: DataTableProps) => {
@@ -983,6 +985,7 @@ export const DataTable = ({
             <BrandModalFactory
               brand={selectedBrand}
               brandData={selectedBrandData}
+              factoryType={factoryType}
               onClose={() => {
                 setSelectedBrand(null);
                 setSelectedBrandData(null);

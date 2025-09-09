@@ -218,6 +218,13 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
           </div>
         </div>
 
+        {/* Contact Information */}
+        <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+          <p className="text-sm text-blue-800 text-center">
+            <span className="font-medium">Contact:</span> lester@madison88.com for your login credentials
+          </p>
+        </div>
+
       </div>
     </div>
   );
