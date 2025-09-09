@@ -348,7 +348,25 @@ export const DataTable = ({
   const renderCellContent = (row: DataRecord, col: Column) => {
     const isEditing = editingCell?.rowId === row.id && editingCell?.columnKey === col.key;
     const isEditable = editableColumns.includes(col.key);
+    
+    // FA columns are read-only for company users
+    const faColumns = ['fa_wuxi', 'fa_hz_u', 'fa_pt_uwu', 'fa_korea_m', 'fa_singfore', 'fa_heads_up'];
+    const isReadOnly = faColumns.includes(col.key);
+    const isActuallyEditable = isEditable && !isReadOnly;
+    
     const cellValue = getRowValue(row, col.key);
+    
+    
+    // FA columns - always display as read-only text
+    if (isReadOnly) {
+      return (
+        <div className="px-2 py-1">
+          <span className="text-slate-600 text-sm font-medium">
+            {cellValue || '—'}
+          </span>
+        </div>
+      );
+    }
     
     // Handle editing state for yes_blank fields specially
     if (isEditing && col.type === 'yes_blank') {
@@ -453,7 +471,7 @@ export const DataTable = ({
           <YesBlankCell
             value={cellValue}
             onUpdate={(newValue) => handleCellUpdate(row.id, col.key, newValue)}
-            isEditable={isEditable}
+            isEditable={isActuallyEditable}
           />
         );
 
@@ -473,7 +491,7 @@ export const DataTable = ({
           );
         }
         
-        if (isEditable && col.options) {
+        if (isActuallyEditable && col.options) {
           return (
             <div className="px-2 py-1">
               <select
@@ -505,7 +523,7 @@ export const DataTable = ({
             : 'bg-slate-100 text-slate-600'
         }`;
         
-        if (isEditable) {
+        if (isActuallyEditable) {
           return (
             <div className="px-2 py-1 flex justify-center">
               <button
@@ -532,9 +550,9 @@ export const DataTable = ({
           return (
             <div className="px-2 py-1">
               <span 
-                className={`text-slate-600 text-xs ${isEditable ? 'cursor-pointer hover:bg-slate-100' : 'cursor-not-allowed'} px-2 py-1 rounded truncate block`}
+                className={`text-slate-600 text-xs ${isActuallyEditable ? 'cursor-pointer hover:bg-slate-100' : 'cursor-not-allowed'} px-2 py-1 rounded truncate block`}
                 title={JSON.stringify(cellValue, null, 2)}
-                onClick={isEditable ? () => handleCellEdit(row.id, col.key) : undefined}
+                onClick={isActuallyEditable ? () => handleCellEdit(row.id, col.key) : undefined}
               >
                 {JSON.stringify(cellValue).length > 30 
                   ? `${JSON.stringify(cellValue).substring(0, 30)}...` 
@@ -586,8 +604,9 @@ export const DataTable = ({
           );
         }
 
+
         // Editable text fields
-        if (isEditable && (col.type === 'text' || !col.type)) {
+        if (isActuallyEditable && (col.type === 'text' || !col.type)) {
           if (tableType === 'factory' && editableColumns.includes(col.key)) {
             return (
               <div className="px-2 py-1">

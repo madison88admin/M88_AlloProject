@@ -35,7 +35,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
     setError('');
 
     try {
-      console.log('Attempting login with username:', username);
       
       const { data, error: dbError } = await supabase
         .from('accounts')
@@ -44,7 +43,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
         .eq('is_active', true) // Only active accounts
         .limit(1);
 
-      console.log('Supabase response:', { data, error: dbError });
 
       if (dbError) {
         console.error('Database error:', dbError);
@@ -58,7 +56,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
       }
 
       const user = data[0] as Account;
-      console.log('Found user:', { ...user, password: '[REDACTED]' });
 
       // Validate account type
       if (!['company', 'factory', 'admin'].includes(user.type)) {
@@ -75,7 +72,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
       }
 
       // Login successful
-      console.log(`Login successful for ${user.type} user:`, user.username);
       setError('');
       
       // Log the login

@@ -265,11 +265,6 @@ const M88DatabaseUI = ({
     const factorySpecificColumns = getFactorySpecificColumns(username);
     
     // Debug logging (commented out for production)
-    // console.log('Factory columns debug:', {
-    //   username,
-    //   factorySpecificColumns,
-    //   baseCompanyColumnsCount: baseCompanyColumns.length
-    // });
     
     // All factory assignment, flag, and new factory-specific columns
     const allFactoryColumns = [
@@ -302,7 +297,6 @@ const M88DatabaseUI = ({
       return true;
     });
     
-    // console.log('Filtered factory columns:', filteredColumns.map(col => col.key));
     
     return filteredColumns;
   };
@@ -366,6 +360,7 @@ const M88DatabaseUI = ({
       default:
         baseColumns = companyColumnOrder;
     }
+
 
     // Update status column options based on showInactiveRecords toggle
     return baseColumns.map(col => {
@@ -702,8 +697,11 @@ const M88DatabaseUI = ({
   // Enhanced cell update handler for custom fields and yes_blank types
   const handleCellUpdate = async (rowId: number, columnKey: string, newValue: any) => {
     try {
+      
       const currentRecord = sortedData.find(record => record.id === rowId);
-      if (!currentRecord) return;
+      if (!currentRecord) {
+        return;
+      }
 
       let updatedRecord = { ...currentRecord };
       
@@ -733,10 +731,14 @@ const M88DatabaseUI = ({
         updatedRecord[columnKey] = finalValue;
       }
 
+      // Check if this is a factory column
+      const isFactory = isFactoryColumn(columnKey);
+
       // Apply FA assignments if this is a factory column
-      const finalRecord = isFactoryColumn(columnKey) 
+      const finalRecord = isFactory 
         ? updateFAAssignments(updatedRecord)
         : updatedRecord;
+
 
       await handleSaveRecord(finalRecord);
       
@@ -839,25 +841,23 @@ const M88DatabaseUI = ({
   };
 
   const getEditableColumns = (type: 'company' | 'factory' | 'admin') => {
-    console.log('🔍 getEditableColumns called with:', { type, userType: user?.type, isAdmin: user?.type === 'admin' });
-    
     if (type === 'admin') {
-      const editable = columns.map(col => col.key);
-      console.log('👑 Admin: All columns editable:', editable);
-      return editable;
+      return columns.map(col => col.key);
     } 
     
     if (type === 'company') {
       if (user?.type === 'admin') {
-        const editable = columns.map(col => col.key);
-        console.log('👑 Company Admin: All columns editable:', editable);
-        return editable;
+        return columns.map(col => col.key);
       } else {
+        // For company users, include FA columns but mark them as read-only
         const editable = columns
           .filter(col => !companyNonEditableKeys.includes(col.key))
           .map(col => col.key);
-        console.log('🏢 Company User: Editable columns:', editable);
-        console.log('🚫 Company User: Non-editable keys:', companyNonEditableKeys);
+        
+        // Add FA columns as read-only (they'll be visible but not editable)
+        const faColumns = ['fa_wuxi', 'fa_hz_u', 'fa_pt_uwu', 'fa_korea_m', 'fa_singfore', 'fa_heads_up'];
+        
+        // Return only the editable columns (FA columns will be handled separately in DataTable)
         return editable;
       }
     } 
@@ -879,7 +879,6 @@ const M88DatabaseUI = ({
           return false;
         })
         .map(col => col.key);
-      console.log('🏭 Factory: Editable columns:', editable);
       return editable;
     }
   
@@ -1203,7 +1202,10 @@ const M88DatabaseUI = ({
         <div className="card-elevated overflow-hidden">
           <DataTable
             data={sortedData}
-            columns={columns.filter(col => columnVisibility[col.key])}
+            columns={(() => {
+              const visibleColumns = columns.filter(col => columnVisibility[col.key]);
+              return visibleColumns;
+            })()}
             sortConfig={sortConfig}
             onSort={handleSort}
             onEdit={setEditingRecord}

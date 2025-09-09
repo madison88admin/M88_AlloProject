@@ -20,9 +20,11 @@ export const updateFAAssignments = (data: DataRecord): DataRecord => {
   const updatedData = { ...data };
   
   FA_MAPPINGS.forEach(({ factoryColumn, faColumn, faName }) => {
-    if (updatedData[factoryColumn] === 'Yes') {
+    const factoryValue = updatedData[factoryColumn];
+    
+    if (factoryValue === 'Yes') {
       updatedData[faColumn] = faName;
-    } else if (updatedData[factoryColumn] === '' || updatedData[factoryColumn] === '—' || !updatedData[factoryColumn]) {
+    } else if (factoryValue === '' || factoryValue === '—' || !factoryValue) {
       updatedData[faColumn] = '';
     }
   });

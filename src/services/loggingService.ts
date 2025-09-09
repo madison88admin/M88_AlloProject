@@ -73,7 +73,6 @@ class LoggingService {
     
     // Also log to console in development
     if (process.env.NODE_ENV === 'development') {
-      console.log('User Activity Log:', log);
     }
   }
 

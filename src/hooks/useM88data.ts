@@ -16,19 +16,15 @@ export const useM88Data = (user?: UserInfo, showInactiveRecords?: boolean) => {
 
   const loadData = async () => {
     try {
-      console.log('=== Hook Debug: Starting loadData ===');
       setLoading(true);
       setError(null);
-      console.log('Calling fetchM88Data...');
       const records = await fetchM88Data();
       setData(records);
-      console.log('Data state updated');
     } catch (err) {
       console.error('Error in loadData hook:', err);
       setError(err instanceof Error ? err.message : 'Failed to load data');
     } finally {
       setLoading(false);
-      console.log('Loading finished');
     }
   };
 
@@ -40,7 +36,8 @@ export const useM88Data = (user?: UserInfo, showInactiveRecords?: boolean) => {
     try {
       const originalRecord = data.find(r => r.id === record.id);
       const updatedRecord = await updateM88Record(record);
-      setData(prev => prev.map(r => r.id === updatedRecord.id ? updatedRecord : r));
+      // Use the record parameter (which contains FA assignments) instead of updatedRecord (API response)
+      setData(prev => prev.map(r => r.id === record.id ? record : r));
       
       // Log the update if user info is available
       if (user && originalRecord) {
