@@ -158,7 +158,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                 required
                 autoComplete="current-password"
                 data-form-type="other"
-                style={{ WebkitTextSecurity: showPassword ? 'none' : 'disc' }}
               />
               <span
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer text-sm font-medium select-none"
