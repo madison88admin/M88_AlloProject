@@ -90,10 +90,10 @@ const normalizeYesBlankValue = (value: any): string => {
 const getFactorySpecificColumns = (username: string): string[] => {
   // Map factory usernames to their specific columns
   const factoryColumnMap: Record<string, string[]> = {
-    'factory_WuxiSingfore': ['fa_wuxi', 'fa_singfore', 'wuxi_jump_senior_md', 'wuxi_shipping', 'wuxi_trims_coordinator', 'wuxi_label_coordinator', 'singfore_jump_senior_md', 'singfore_shipping', 'singfore_trims_coordinator', 'singfore_label_coordinator'],
+    'factory_WuxiSingfore': ['fa_wuxi', 'fa_singfore', 'wuxi_senior_md', 'wuxi_shipping', 'wuxi_trims_coordinator', 'wuxi_label_coordinator', 'singfore_senior_md', 'singfore_shipping', 'singfore_trims_coordinator', 'singfore_label_coordinator'],
     'factory_PTuwuHzuUjump': ['fa_pt_uwu', 'fa_hz_u', 'hz_pt_u_jump_senior_md', 'hz_u_jump_shipping', 'pt_ujump_shipping', 'hz_pt_ujump_trims_coordinator', 'hz_pt_ujump_label_coordinator'],
     'factory_HeadsUp': ['fa_heads_up', 'headsup_senior_md', 'headsup_shipping', 'headsup_trims_coordinator', 'headsup_label_coordinator'],
-    'factory_KoreaMel': ['fa_korea_m', 'koreamel_jump_senior_md', 'koreamel_shipping', 'koreamel_trims_coordinator', 'koreamel_label_coordinator']
+    'factory_KoreaMel': ['fa_korea_m', 'koreamel_senior_md', 'koreamel_shipping', 'koreamel_trims_coordinator', 'koreamel_label_coordinator']
   };
   
   return factoryColumnMap[username] || [];
@@ -195,11 +195,11 @@ const M88DatabaseUI = ({
     { key: 'hz_pt_u_jump_senior_md', label: 'HZ/PT U-JUMP Senior MD', type: 'text', width: '180px' },
     { key: 'hz_u_jump_shipping', label: 'HZ U-JUMP Shipping', type: 'text', width: '150px' },
     { key: 'pt_ujump_shipping', label: 'PT UJUMP Shipping', type: 'text', width: '150px' },
-    { key: 'wuxi_jump_senior_md', label: 'Wuxi Jump Senior MD', type: 'text', width: '180px' },
+    { key: 'wuxi_senior_md', label: 'Wuxi Senior MD', type: 'text', width: '180px' },
     { key: 'wuxi_shipping', label: 'Wuxi Shipping', type: 'text', width: '150px' },
-    { key: 'singfore_jump_senior_md', label: 'Singfore Jump Senior MD', type: 'text', width: '180px' },
+    { key: 'singfore_senior_md', label: 'Singfore Senior MD', type: 'text', width: '180px' },
     { key: 'singfore_shipping', label: 'Singfore Shipping', type: 'text', width: '150px' },
-    { key: 'koreamel_jump_senior_md', label: 'KoreaMel Jump Senior MD', type: 'text', width: '180px' },
+    { key: 'koreamel_senior_md', label: 'KoreaMel Senior MD', type: 'text', width: '180px' },
     { key: 'koreamel_shipping', label: 'KoreaMel Shipping', type: 'text', width: '150px' },
     { key: 'headsup_senior_md', label: 'HeadsUp Senior MD', type: 'text', width: '180px' },
     { key: 'headsup_shipping', label: 'HeadsUp Shipping', type: 'text', width: '150px' },
@@ -230,9 +230,9 @@ const M88DatabaseUI = ({
       'fa_wuxi', 'fa_hz_u', 'fa_pt_uwu', 'fa_korea_m', 'fa_singfore', 'fa_heads_up',
  
       'hz_pt_u_jump_senior_md', 'hz_u_jump_shipping', 'pt_ujump_shipping',
-      'wuxi_jump_senior_md', 'wuxi_shipping',
-      'singfore_jump_senior_md', 'singfore_shipping',
-      'koreamel_jump_senior_md', 'koreamel_shipping',
+      'wuxi_senior_md', 'wuxi_shipping',
+      'singfore_senior_md', 'singfore_shipping',
+      'koreamel_senior_md', 'koreamel_shipping',
       'headsup_senior_md', 'headsup_shipping',
       'wuxi_trims_coordinator', 'wuxi_label_coordinator',
       'singfore_trims_coordinator', 'singfore_label_coordinator',
@@ -271,9 +271,9 @@ const M88DatabaseUI = ({
       'fa_wuxi', 'fa_hz_u', 'fa_pt_uwu', 'fa_korea_m', 'fa_singfore', 'fa_heads_up',
       'wuxi_moretti', 'hz_u_jump', 'pt_u_jump', 'korea_mel', 'singfore', 'heads_up',
       'hz_pt_u_jump_senior_md', 'hz_u_jump_shipping', 'pt_ujump_shipping',
-      'wuxi_jump_senior_md', 'wuxi_shipping',
-      'singfore_jump_senior_md', 'singfore_shipping',
-      'koreamel_jump_senior_md', 'koreamel_shipping',
+      'wuxi_senior_md', 'wuxi_shipping',
+      'singfore_senior_md', 'singfore_shipping',
+      'koreamel_senior_md', 'koreamel_shipping',
       'headsup_senior_md', 'headsup_shipping',
       'wuxi_trims_coordinator', 'wuxi_label_coordinator',
       'singfore_trims_coordinator', 'singfore_label_coordinator',
@@ -400,11 +400,11 @@ const M88DatabaseUI = ({
     hz_pt_u_jump_senior_md: 'Factory Assignment',
     hz_u_jump_shipping: 'Factory Assignment',
     pt_ujump_shipping: 'Factory Assignment',
-    wuxi_jump_senior_md: 'Factory Assignment',
+    wuxi_senior_md: 'Factory Assignment',
     wuxi_shipping: 'Factory Assignment',
-    singfore_jump_senior_md: 'Factory Assignment',
+    singfore_senior_md: 'Factory Assignment',
     singfore_shipping: 'Factory Assignment',
-    koreamel_jump_senior_md: 'Factory Assignment',
+    koreamel_senior_md: 'Factory Assignment',
     koreamel_shipping: 'Factory Assignment',
     headsup_senior_md: 'Factory Assignment',
     headsup_shipping: 'Factory Assignment',
