@@ -160,11 +160,15 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
               />
               <button
                 type="button"
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
                 onClick={() => setShowPassword(!showPassword)}
                 tabIndex={-1}
               >
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                {showPassword ? (
+                  <EyeOff key="eye-off" className="w-5 h-5" />
+                ) : (
+                  <Eye key="eye" className="w-5 h-5" />
+                )}
               </button>
             </div>
           </div>
