@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import M88DatabaseUI from './App';
 import LoginPage from './components/LoginPage';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Account interface for user prop
 interface Account {
@@ -39,8 +40,29 @@ function RootApp() {
   />;
 }
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <RootApp />
-  </React.StrictMode>
-);
+// Prevent multiple root creation during hot reload
+let root: ReactDOM.Root | null = null;
+
+const container = document.getElementById('root');
+if (!root) {
+  root = ReactDOM.createRoot(container!);
+}
+
+const renderApp = () => {
+  root!.render(
+    <React.StrictMode>
+      <ErrorBoundary>
+        <RootApp />
+      </ErrorBoundary>
+    </React.StrictMode>
+  );
+};
+
+renderApp();
+
+// Hot Module Replacement support
+if (import.meta.hot) {
+  import.meta.hot.accept('./App', () => {
+    renderApp();
+  });
+}
